@@ -1,0 +1,104 @@
+{
+	"publisher": "JanWinkels",
+	"name": "ais",
+	"displayName": "ApexIntelliSense",
+	"description": "Code Completion for Apex Development",
+	"version": "2.2.0",
+	"repository": {
+		"type": "git",
+		"email": "janwinkels@yahoo.de",
+		"url": "https://github.com/jwinkels"
+	},
+	"icon": "images/oracle-apex.webp",
+	"engines": {
+		"vscode": "^1.54.0"
+	},
+	"categories": [
+		"Programming Languages"
+	],
+	"keywords": [
+        "plsql",
+        "apex",
+        "orclapex",
+        "oracle",
+        "intellisense"
+    ],
+	"activationEvents": [
+		"onCommand:ail.activate"
+	],
+	"main": "./out/extension.js",
+	"contributes": {
+		"commands": [
+			{
+				"command": "ail.activate",
+				"title": "ApexIntelliSenseActivate"
+			},
+			{
+				"command": "ail.updateCache",
+				"title": "ApexIntelliSenseUpdateCache"
+			}
+		],
+		"configuration": [
+			{
+				"title": "APEX-IntelliSense",
+				"properties": {
+					"credentials.connection": {
+						"type": "string",
+						"description": "OracleConnection-String"
+					},
+					"credentials.username": {
+						"type": "string",
+						"description": "Parsing-Schema-Name"
+					},
+					"paths.OracleInstantClientPath": {
+						"type": "string",
+						"description": "Path to your Oracle Instant Client"
+					},
+					"paths.ApexCacheFile": {
+						"type": "string",
+						"description": "Path to a central APEX Cache-File"
+					},
+					"options.PublicPackages": {
+						"type": "array",
+						"description": "load packages that are granted to public"
+					},
+					"options.LoadObjectsOnActivate": {
+						"type": "boolean",
+						"description": "load all database objects on activation (if false load from cache)"
+					},
+					"options.LoadApexPackages": {
+						"type": "boolean",
+						"description": "When checked the APEX-Source Packages are loaded"
+					}
+				}
+			}
+		]
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -p ./",
+		"watch": "tsc -watch -p ./",
+		"pretest": "npm run compile && npm run lint",
+		"lint": "eslint src --ext ts",
+		"test": "node ./out/test/runTest.js"
+	},
+	"devDependencies": {
+		"@types/glob": "^7.1.3",
+		"@types/mocha": "^8.0.4",
+		"@types/vscode": "^1.54.0",
+		"@typescript-eslint/eslint-plugin": "^4.18.0",
+		"@typescript-eslint/parser": "^4.18.0",
+		"eslint": "^7.22.0",
+		"glob": "^7.1.6",
+		"mocha": "^8.3.2",
+		"typescript": "^4.1.3",
+		"vscode-test": "^1.5.0"
+	},
+	"dependencies": {
+		"@types/fs-extra": "9.0.7",
+		"@types/oracledb": "^5.1.0",
+		"@types/text-encoding": "0.0.35",
+		"@types/yaml": "^1.9.7",
+		"oracledb": "^5.1.0"
+	}
+}
