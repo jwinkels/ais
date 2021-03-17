@@ -3,6 +3,10 @@
 AutoCompletion aka IntelliSense for APEX parsing schemas, inclusive all granted packages, procedures and functions. 
 Access to APEX page items.
 
+## Demo
+
+![demo](demo.gif)
+
 ## Requirements
 - You must perform an ApexIntelliSense->activate (to establish a Database Connection)
 - You must connect to the Development Environment
