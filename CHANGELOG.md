@@ -1,12 +1,22 @@
 # Change Log
 
-### 1.0.0
+### 2.2.0
+- autocompletion enhancements
 
-Initial release of ApexIntelliSense
+### 2.1.0
+- new Setting: ApexCacheFilePath
 
-### 1.0.1
+### 2.0.2
+- Connection Bug
+- Performance!!
 
-Fixed Bug wrong arguments in method
+### 2.0.1
+- Additional APEX Cache
+- Settings Bug
+
+### 2.0.0
+- Caching
+- nicer CompletionItemList with documentation
 
 ### 1.0.2
 
@@ -14,20 +24,10 @@ Integrated Setting, PublicPackages:
 Comma (",")-seperated list of packages that are granted to public and exposed via public synonym.
 APEX Application Items
 
-### 2.0.0
-- Caching
-- nicer CompletionItemList with documentation
+### 1.0.0
 
-### 2.0.1
-- Additional APEX Cache
-- Settings Bug
+Initial release of ApexIntelliSense
 
-### 2.0.2
-- Connection Bug
-- Performance!!
+### 1.0.1
 
-### 2.1.0
-- new Setting: ApexCacheFilePath
-
-### 2.2.0
-- autocompletion enhancements
+Fixed Bug wrong arguments in method
