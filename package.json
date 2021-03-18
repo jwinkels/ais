@@ -3,11 +3,11 @@
 	"name": "ais",
 	"displayName": "ApexIntelliSense",
 	"description": "Code Completion for Apex Development",
-	"version": "2.2.1",
+	"version": "2.2.3",
 	"repository": {
 		"type": "git",
-		"email": "janwinkels@yahoo.de",
-		"url": "https://github.com/jwinkels"
+		"email": "Jan.Winkels@opitz-consulting.com",
+		"url": "https://github.com/jwinkels/ais"
 	},
 	"icon": "images/oracle-apex.webp",
 	"license": "MIT",
@@ -32,24 +32,26 @@
 		"commands": [
 			{
 				"command": "ail.activate",
-				"title": "ApexIntelliSenseActivate"
+				"category": "ApexIntelliSense",
+				"title": "Activate"
 			},
 			{
 				"command": "ail.updateCache",
-				"title": "ApexIntelliSenseUpdateCache"
+				"category": "ApexIntelliSense",
+				"title": "Update Cache"
 			}
 		],
 		"configuration": [
 			{
-				"title": "APEX-IntelliSense",
+				"title": "ApexIntelliSense",
 				"properties": {
 					"credentials.connection": {
 						"type": "string",
-						"description": "OracleConnection-String"
+						"description": "connection string [HOST:PORT/SERVICENAME]"
 					},
 					"credentials.username": {
 						"type": "string",
-						"description": "Parsing-Schema-Name"
+						"description": "Parsing schema name"
 					},
 					"paths.OracleInstantClientPath": {
 						"type": "string",
@@ -57,7 +59,7 @@
 					},
 					"paths.ApexCacheFile": {
 						"type": "string",
-						"description": "Path to a central APEX Cache-File"
+						"description": "Path to a central APEX cache file"
 					},
 					"options.PublicPackages": {
 						"type": "array",
@@ -69,7 +71,7 @@
 					},
 					"options.LoadApexPackages": {
 						"type": "boolean",
-						"description": "When checked the APEX-Source Packages are loaded"
+						"description": "When checked the APEX-Source packages are loaded"
 					}
 				}
 			}

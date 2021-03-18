@@ -8,8 +8,8 @@ Access to APEX page items.
 ![demo](demo.gif)
 
 ## Requirements
-- You must perform an ApexIntelliSense->activate (to establish a Database Connection)
-- You must connect to the Development Environment
+- You must activate the extension (Ctr+Shift+P -> ApexIntelliSense: Activate)
+- You must connect to the Development Environment at least one time to build the cache
 - You must download and install the OracleInstantClient 
 - You must configure the Plugin under Settings->ApexIntelliSense
 
@@ -23,16 +23,18 @@ This extension contributes the following settings:
 * `ApexIntelliSense.PublicPackages`: Comma (",")-seperated list of packages that are granted to public and exposed via public synonym 
 * `ApexIntelliSense.LoadApexPacakges`: Wether the APEX_* Packages should be loaded (see 'Feature->Caching' in this readme)
 * `ApexIntelliSense.LoadObjectsOnActivate`: Wether DB Objects should be loaded when extension is activated, otherwise it tries to load objects from cache
-* `ApexIntelliSense.ApexCacheFile`: Load a central apex-Cache File to the Extension instead of pulling it again
+* `ApexIntelliSense.ApexCacheFile`: Load a central apex cache file to the extension instead of pulling it again (performance reasons)
 
 ## Features
 
 ### Caching
-When the plugin is activated it will create a directory .ais where caches are stored.
+When the plugin is activated it will create a directory .ais where caches are stored (only when you activate the options 'LoadApexPacakges' and/or 'LoadObjectsOnActivate').
 There are two types of caches:
 
 - User Object Cache (cache.yaml)
 - APEX Object Cache (apex.yaml)
+
+Caches can be updated via the 'ApexIntelliSense: Update Cache' command
 
 #### User Object Cache
 
@@ -41,15 +43,19 @@ The User Object Cache will contain the following Objects:
 - APEX Page Items
 - All executable Packages/Procedures/Functions incl. of their arguments and return types
 
+It is recommended to let this option be activated.
 #### APEX Object Cache
 
-The APEX Object Cache contains all APEX_* Packages with all of their methods (and of course arguments and return types) regardless of them to be part of the documentation or not.
+The APEX Object Cache contains all APEX_* packages with all of their methods (and of course arguments and return types) regardless of them to be part of the documentation or not. The process of loading the APEX packages is taking a while, therefor it is recommended to save a central apex cache and use the 'ApexCacheFile'-Setting.
 
 ## Known Issues
 
 None so far...
 
 ## Release Notes
+
+### 2.2.1-3
+- minor changes
 
 ### 2.2.0
 - autocompletion enhancements
@@ -70,17 +76,14 @@ None so far...
 - nicer CompletionItemList with documentation
 
 ### 1.0.2
-
 Integrated Setting, PublicPackages:
 Comma (",")-seperated list of packages that are granted to public and exposed via public synonym.
 APEX Application Items
 
 ### 1.0.0
-
 Initial release of ApexIntelliSense
 
 ### 1.0.1
-
 Fixed Bug wrong arguments in method
 
 **Enjoy!**
