@@ -8,7 +8,7 @@ Access to APEX page items.
 ![demo](demo.gif)
 
 ## Requirements
-- You must activate the extension (Ctr+Shift+P -> ApexIntelliSense: Activate)
+- You must activate the extension (`Ctrl+Shift+P` -> `ApexIntelliSense: Activate`)
 - You must connect to the Development Environment at least one time to build the cache
 - You must download and install the OracleInstantClient 
 - You must configure the Plugin under Settings->ApexIntelliSense

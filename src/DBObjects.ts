@@ -152,7 +152,7 @@ export class DBObjects {
 
         if (!this.connection.error){
             
-            let query = `select distinct all_syn.synonym_name
+            let query = `select distinct lower(all_syn.synonym_name)
                             from all_synonyms all_syn join all_objects all_obj on (all_syn.table_name=all_obj.object_name)
                             where all_syn.synonym_name like 'APEX_%'
                             and all_obj.object_type = 'PACKAGE'
@@ -174,7 +174,7 @@ export class DBObjects {
 
         if (!this.connection.error){
             
-            let query = `select all_proc.procedure_name, all_proc.subprogram_id
+            let query = `select lower(all_proc.procedure_name), all_proc.subprogram_id
                             from all_synonyms all_syn join all_objects all_obj on (all_syn.table_name=all_obj.object_name)
                                                         join all_procedures all_proc on (all_proc.object_name=all_obj.object_name)
                             where all_syn.synonym_name = '${packageName}'
@@ -204,19 +204,19 @@ export class DBObjects {
                                 from all_synonyms
                                 where synonym_name='${packageName}'
                             )
-                            select argument_name, data_type
+                            select lower(argument_name), lower(data_type)
                             from all_arguments join wwv_flow_name on (all_arguments.package_name=wwv_flow_name.package_name)
                             and object_name='${methodName}'
                             and subprogram_id=${id}`;
                 }else{
-                    query = `select argument_name, data_type
+                    query = `select lower(argument_name), lower(data_type)
                                 from all_arguments
                                 where lower(package_name) = '${packageName}'
                                 and lower(object_name)='${methodName}'
                                 and subprogram_id=${id}`;
                 }
             }else{
-                query = `select argument_name, data_type
+                query = `select lower(argument_name), lower(data_type)
                             from all_arguments
                             where package_name is null
                             and lower(object_name)='${methodName}'

@@ -3,13 +3,13 @@
 	"name": "ais",
 	"displayName": "ApexIntelliSense",
 	"description": "Code Completion for Apex Development",
-	"version": "2.2.3",
+	"version": "2.2.4",
 	"repository": {
 		"type": "git",
 		"email": "Jan.Winkels@opitz-consulting.com",
 		"url": "https://github.com/jwinkels/ais"
 	},
-	"icon": "images/oracle-apex.webp",
+	"icon": "images/ais.png",
 	"license": "MIT",
 	"engines": {
 		"vscode": "^1.54.0"
