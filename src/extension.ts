@@ -24,14 +24,15 @@ export function activate(context: vscode.ExtensionContext) {
 		}	
 	}
 
-	async function loadPackages(instantClientPath:string, connectionString:string, username:string, password:string, publicPackages:string, cache:Cache):Promise<any>{
+	async function loadPackages(instantClientPath:string, connectionString:string, username:string, password:string, publicPackages:string, cache:Cache, progress:vscode.Progress<{message?: string | undefined; increment?: number | undefined;}>):Promise<any>{
 		let packageList = publicPackages.split(',');
 		publicPackages = "'" + packageList.join("','") + "'";
-
+		
 		let objects = await DBObjects.getPackages(instantClientPath, connectionString, username, password, publicPackages);
-
+		let stepForward = 30 / objects.length;
 		if (!objects.error){
 			for(let i=0; i<objects.length; i++){
+				progress.report({increment: stepForward, message: ' package - ' + objects[i][0].toString()});
 				cache.addPackage(objects[i][0].toString(), objects[i][1]);
 				await loadMethods(instantClientPath, connectionString, username, password, objects[i][0].toString(), cache);
 			}
@@ -46,7 +47,7 @@ export function activate(context: vscode.ExtensionContext) {
 		let stepForward = 50 / objects.length;
 		if (!objects.error){
 			for(let i=0; i<objects.length; i++){
-				progress.report({increment: stepForward, message: objects[i].toString()});
+				progress.report({increment: stepForward, message: ' package - ' + objects[i].toString()});
 				cache.addPackage(objects[i].toString(),'');
 				await loadMethods(instantClientPath, connectionString, username, password, objects[i].toString(), cache);
 			}
@@ -58,7 +59,7 @@ export function activate(context: vscode.ExtensionContext) {
 		let methods:any;
 
 		if (packageName){
-			if (packageName.includes('APEX_')){
+			if (packageName.includes('apex_')){
 				methods = await DBObjects.getApexPackageProcedures(instantClientPath, connectionString, username, password, packageName);
 			}else{
 				methods = await DBObjects.getPackageProcedures(instantClientPath, connectionString, username, password, packageName);
@@ -126,10 +127,10 @@ export function activate(context: vscode.ExtensionContext) {
 			await loadItems(instantClientPath, connectionString, username, password, cache);
 			
 			progress.report({ increment: 10, message: "User Packages..." });
-			await loadPackages(instantClientPath, connectionString, username, password, publicPackages, cache);
+			await loadPackages(instantClientPath, connectionString, username, password, publicPackages, cache, progress);
 			
 			if(loadApex){
-				progress.report({increment: 40, message: "User stored procedures..."});
+				progress.report({increment: 10, message: "User stored procedures..."});
 				await loadMethods(instantClientPath, connectionString, username, password, undefined, cache);
 
 				cache.serialize();
@@ -140,7 +141,7 @@ export function activate(context: vscode.ExtensionContext) {
 				vscode.workspace.getConfiguration('').update('options.LoadApexPackages', false, vscode.ConfigurationTarget.Workspace);
 				apexCache.serializeApexPackages();
 			}else{
-				progress.report({increment: 80, message: "User stored procedures..."});
+				progress.report({increment: 50, message: "User stored procedures..."});
 				await loadMethods(instantClientPath, connectionString, username, password, undefined, cache);
 
 				cache.serialize();	
@@ -352,7 +353,7 @@ class  ApexCompletionItemProvider implements vscode.CompletionItemProvider{
 			if(argumentList[argumentNames[i]].return){
 				returnType = argumentList[argumentNames[i]].type;
 			}else{
-				if( argumentList[argumentNames[i]].type==='VARCHAR2'){
+				if( argumentList[argumentNames[i]].type==='varchar2'){
 					parameters = parameters + '\n\t' + argumentNames[i] + ` =>'$${(i+1)}',`;
 				}else{
 					parameters = parameters + '\n\t' + argumentNames[i] + ' => $' + (i+1) + ',';

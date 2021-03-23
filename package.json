@@ -3,7 +3,7 @@
 	"name": "ais",
 	"displayName": "ApexIntelliSense",
 	"description": "Code Completion for Apex Development",
-	"version": "2.2.4",
+	"version": "2.2.6",
 	"repository": {
 		"type": "git",
 		"email": "Jan.Winkels@opitz-consulting.com",

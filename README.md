@@ -50,11 +50,14 @@ The APEX Object Cache contains all APEX_* packages with all of their methods (an
 
 ## Known Issues
 
-None so far...
+- When there is a package with the same name as a granted package the methods will be merged (will be solved!)
 
 ## Release Notes
 
-### 2.2.1-3
+### 2.2.5
+- solved issue with apex object
+- more informative package loading
+### 2.2.1-4
 - minor changes
 
 ### 2.2.0
