@@ -415,14 +415,9 @@ class  ApexCompletionItemProvider implements vscode.CompletionItemProvider{
 		
 		if(index === -1){
 			index = apexCache.packages.findIndex((aPackage:{name:string, owner:string})=>aPackage.name === packageName && aPackage.owner === owner);
-		}
-		
-		if(cache.packages[index]){
-			methods = cache.packages[index].methods;
-		}else if(apexCache.packages[index]){
 			methods = apexCache.packages[index].methods;
 		}else{
-			return completionItems;
+			methods = cache.packages[index].methods;
 		}
 
 		for (let i=0; i<methods.length; i++){

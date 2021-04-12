@@ -1,5 +1,7 @@
 # Change Log
 
+### 2.2.8
+- fixed Issues with completionlist
 ### 2.2.7
 - solved issue merging methods on equal package names
 - nicer argument-types
