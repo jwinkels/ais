@@ -34,7 +34,7 @@ export function activate(context: vscode.ExtensionContext) {
 			for(let i=0; i<objects.length; i++){
 				progress.report({increment: stepForward, message: ' package - ' + objects[i][0].toString()});
 				cache.addPackage(objects[i][0].toString(), objects[i][1]);
-				await loadMethods(instantClientPath, connectionString, username, password, objects[i][0].toString(), cache);
+				await loadMethods(instantClientPath, connectionString, username, password, objects[i][0].toString(), objects[i][1], cache);
 			}
 		}else{
 			vscode.window.showErrorMessage(objects.error);
@@ -49,12 +49,12 @@ export function activate(context: vscode.ExtensionContext) {
 			for(let i=0; i<objects.length; i++){
 				progress.report({increment: stepForward, message: ' package - ' + objects[i].toString()});
 				cache.addPackage(objects[i].toString(),'');
-				await loadMethods(instantClientPath, connectionString, username, password, objects[i].toString(), cache);
+				await loadMethods(instantClientPath, connectionString, username, password, objects[i].toString(), '' , cache);
 			}
 		}
 	}
 
-	async function loadMethods(instantClientPath:string, connectionString:string, username:string, password:string, packageName:string|undefined, cache:Cache){
+	async function loadMethods(instantClientPath:string, connectionString:string, username:string, password:string, packageName:string|undefined, owner:string|undefined, cache:Cache){
 
 		let methods:any;
 
@@ -62,13 +62,13 @@ export function activate(context: vscode.ExtensionContext) {
 			if (packageName.includes('apex_')){
 				methods = await DBObjects.getApexPackageProcedures(instantClientPath, connectionString, username, password, packageName);
 			}else{
-				methods = await DBObjects.getPackageProcedures(instantClientPath, connectionString, username, password, packageName);
+				methods = await DBObjects.getPackageProcedures(instantClientPath, connectionString, username, password,  packageName, owner);
 			}
 
 			if (!methods.error){
 				for(let i=0; i<methods.length; i++){
-					cache.addMethodToPackage(methods[i][0].toString(), methods[i][1], packageName);
-					await loadArguments(instantClientPath, connectionString, username, password, packageName, methods[i][0].toString(), methods[i][1], cache);
+					cache.addMethodToPackage(methods[i][0].toString(), methods[i][1], packageName, owner);
+					await loadArguments(instantClientPath, connectionString, username, password, packageName, methods[i][0].toString(), methods[i][1], owner, cache);
 				}
 			}else{
 				vscode.window.showErrorMessage(methods.error);
@@ -76,7 +76,6 @@ export function activate(context: vscode.ExtensionContext) {
 		}else{
 			methods = await DBObjects.getProcedures(instantClientPath, connectionString, username, password);
 			if (!methods.error){
-
 				for(let i=0; i<methods.length; i++){
 					if (methods[i][2]){
 						cache.addMethod(methods[i][0].toString(), methods[i][1], methods[i][2].toString());
@@ -84,7 +83,7 @@ export function activate(context: vscode.ExtensionContext) {
 						cache.addMethod(methods[i][0].toString(), methods[i][1], undefined);
 					}
 					
-					await loadArguments(instantClientPath, connectionString, username, password, undefined, methods[i][0].toString(), methods[i][1], cache);
+					await loadArguments(instantClientPath, connectionString, username, password, undefined, methods[i][0].toString(), methods[i][1], methods[i][2], cache);
 				}
 			}else{
 				vscode.window.showErrorMessage(methods.error);
@@ -92,17 +91,17 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	}
 
-	async function loadArguments(instantClientPath:string, connectionString:string, username:string, password:string, packageName:string|undefined, methodName:string|undefined, id:number, cache:Cache){
+	async function loadArguments(instantClientPath:string, connectionString:string, username:string, password:string, packageName:string|undefined, methodName:string|undefined, id:number, owner:string|undefined, cache:Cache){
 		
 		let argumentList:any;
 		try{
-			argumentList = await DBObjects.getMethodArguments(instantClientPath, connectionString, username, password, packageName, methodName, id);
+			argumentList = await DBObjects.getMethodArguments(instantClientPath, connectionString, username, password, packageName, methodName, id, owner);
 			if (!argumentList.error){
 				for(let i=0; i<argumentList.length; i++){
 					if(argumentList[i][0]){
-						cache.addArgumentToMethod(argumentList[i][0].toString(), argumentList[i][1].toString(), methodName, id, packageName);
+						cache.addArgumentToMethod(argumentList[i][0].toString(), argumentList[i][1].toString(), methodName, id, packageName, owner);
 					}else{
-						cache.addArgumentToMethod(undefined, argumentList[i][1].toString(), methodName, id, packageName);
+						cache.addArgumentToMethod(undefined, argumentList[i][1].toString(), methodName, id, packageName, owner);
 					}
 				}
 			}else{
@@ -131,7 +130,7 @@ export function activate(context: vscode.ExtensionContext) {
 			
 			if(loadApex){
 				progress.report({increment: 10, message: "User stored procedures..."});
-				await loadMethods(instantClientPath, connectionString, username, password, undefined, cache);
+				await loadMethods(instantClientPath, connectionString, username, password, undefined, username, cache);
 
 				cache.serialize();
 				
@@ -142,7 +141,7 @@ export function activate(context: vscode.ExtensionContext) {
 				apexCache.serializeApexPackages();
 			}else{
 				progress.report({increment: 50, message: "User stored procedures..."});
-				await loadMethods(instantClientPath, connectionString, username, password, undefined, cache);
+				await loadMethods(instantClientPath, connectionString, username, password, undefined, username, cache);
 
 				cache.serialize();	
 			}
@@ -282,42 +281,34 @@ class  ApexCompletionItemProvider implements vscode.CompletionItemProvider{
 		let cache:any               		= userObjectcache.getCache();
 		let apexCache:any		    		= apexObjectCache.getCache();
 
-		if (Object.keys(cache.packages).length>0){
-			let packages = Object.keys(cache.packages);
 
-			let object : vscode.CompletionItem;
-			for(let i=0; i<packages.length; i++){
-				
-				if (cache.packages[packages[i]].owner){
-					object = new vscode.CompletionItem(cache.packages[packages[i]].owner + '.'+ packages[i]);
-					this.documentWords=this.documentWords.filter((value)=>value!==cache.packages[packages[i]].owner);
-				}else{
-					object = new vscode.CompletionItem(packages[i]);
-				}
-				this.documentWords=this.documentWords.filter((value)=>value!==packages[i]);
-				object.commitCharacters = ['.'];
-				object.documentation = new vscode.MarkdownString(`Press . to type ${packages[i]}`);
-				completionItems.push(object);
+		let object : vscode.CompletionItem;
+		for(let i=0; i<cache.packages.length; i++){
+			
+			if (cache.packages[i].owner){
+				object = new vscode.CompletionItem(cache.packages[i].owner + '.'+ cache.packages[i].name);
+				this.documentWords=this.documentWords.filter((value)=>value!==cache.packages[i].owner);
+			}else{
+				object = new vscode.CompletionItem(cache.packages[i].name);
 			}
+			this.documentWords=this.documentWords.filter((value)=>value!==cache.packages[i].name);
+			object.commitCharacters = ['.'];
+			object.documentation = new vscode.MarkdownString(`Press . to type ${cache.packages[i].name}`);
+			completionItems.push(object);
 		}
-
-		if (Object.keys(apexCache.packages).length>0){
-			let packages = Object.keys(apexCache.packages);
-
-			let object : vscode.CompletionItem;
-			for(let i=0; i<packages.length; i++){
-				
-				if (apexCache.packages[packages[i]].owner){
-					object = new vscode.CompletionItem(apexCache.packages[packages[i]].owner + '.'+ packages[i]);
-					this.documentWords=this.documentWords.filter((value)=>value!==cache.packages[packages[i]].owner);
-				}else{
-					object = new vscode.CompletionItem(packages[i]);
-				}
-				this.documentWords=this.documentWords.filter((value)=>value!==packages[i]);
-				object.commitCharacters = ['.'];
-				object.documentation = new vscode.MarkdownString(`Press . to type ${packages[i]}`);
-				completionItems.push(object);
+		
+		for(let i=0; i<apexCache.packages.length; i++){
+			
+			if (apexCache.packages[i].owner){
+				object = new vscode.CompletionItem(apexCache.packages[i].owner + '.'+ apexCache.packages[i].name);
+				this.documentWords=this.documentWords.filter((value)=>value!==apexCache.packages[i].owner);
+			}else{
+				object = new vscode.CompletionItem(apexCache.packages[i].name);
 			}
+			this.documentWords=this.documentWords.filter((value)=>value!==apexCache.packages[i].name);
+			object.commitCharacters = ['.'];
+			object.documentation = new vscode.MarkdownString(`Press . to type ${apexCache.packages[i].name}`);
+			completionItems.push(object);
 		}
 
 		//Standalone Methods/Stored Procedures/Functions
@@ -393,6 +384,8 @@ class  ApexCompletionItemProvider implements vscode.CompletionItemProvider{
 		let apexCache:any		    		= apexObjectCache.getCache();
 		let methods:any;
 		let packageName="";
+		let owner:string = "";
+		let index:number=-1;
 		const linePrefix = document.lineAt(position).text.substr(0, position.character);
 		
 		
@@ -401,9 +394,13 @@ class  ApexCompletionItemProvider implements vscode.CompletionItemProvider{
 		}
 		
 		const packageURI = linePrefix.split('.');
-		
 		if (packageURI.length>1){
+			
 			packageName = packageURI[packageURI.length-2].trim();
+			owner 		= packageURI[0].trim();
+			if (owner===packageName){
+				owner='';
+			}
 		}else{
 			packageName = linePrefix.substr(0,linePrefix.length-1).trim();
 		}
@@ -413,11 +410,17 @@ class  ApexCompletionItemProvider implements vscode.CompletionItemProvider{
 		if (packageName.includes(' ')){
 			packageName = packageName.substring(packageName.lastIndexOf(' '), packageName.length).trim();
 		}
+
+		index = cache.packages.findIndex((aPackage:{name:string, owner:string})=>aPackage.name === packageName && aPackage.owner === (owner?owner:null));
 		
-		if(cache.packages[packageName]){
-			methods = cache.packages[packageName].methods;
-		}else if(apexCache.packages[packageName]){
-			methods = apexCache.packages[packageName].methods;
+		if(index === -1){
+			index = apexCache.packages.findIndex((aPackage:{name:string, owner:string})=>aPackage.name === packageName && aPackage.owner === owner);
+		}
+		
+		if(cache.packages[index]){
+			methods = cache.packages[index].methods;
+		}else if(apexCache.packages[index]){
+			methods = apexCache.packages[index].methods;
 		}else{
 			return completionItems;
 		}

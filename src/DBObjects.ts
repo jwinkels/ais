@@ -80,8 +80,8 @@ export class DBObjects {
                           where privs.owner != 'SYS'
                           and privs.type ='PACKAGE'
                           union
-                        select lower(all_syn.synonym_name), ''
-                          from all_synonyms all_syn join all_objects all_obj on (all_syn.table_name=all_obj.object_name)
+                        select lower(all_syn.synonym_name), lower(all_obj.owner)
+                          from all_synonyms all_syn join all_objects all_obj on (all_syn.table_name=all_obj.object_name and all_syn.table_owner=all_obj.owner)
                           where all_syn.synonym_name in(${publicPackages})
                           and all_obj.object_type = 'PACKAGE'`;
             try{
@@ -95,16 +95,27 @@ export class DBObjects {
         }
     }
 
-    public static async getPackageProcedures(clientPath:string|undefined, connectionString:string|undefined, username:string|undefined, password:string|undefined, packageName:string|undefined):Promise<any>{
+    public static async getPackageProcedures(clientPath:string|undefined, connectionString:string|undefined, username:string|undefined, password:string|undefined, packageName:string|undefined, owner:string|undefined):Promise<any>{
         this.connection =  await this.connectTo(clientPath, connectionString, username, password);
 
         if (!this.connection.error){
-            let query = `select lower(all_proc.procedure_name),  
-                                all_proc.subprogram_id
-                           from all_procedures all_proc 
-                            where lower(all_proc.object_name) = '${packageName}'
-                            and all_proc.procedure_name is not null
-                            order by all_proc.subprogram_id`;
+            let query='';
+            if (owner){
+                query = `select lower(all_proc.procedure_name),  
+                                    all_proc.subprogram_id
+                               from all_procedures all_proc 
+                                where lower(all_proc.object_name) = '${packageName}'
+                                and all_proc.procedure_name is not null
+                                and (owner=user or lower(owner)='${owner}') 
+                                order by all_proc.subprogram_id`;
+            }else{
+                query = `select lower(all_proc.procedure_name),  
+                                        all_proc.subprogram_id
+                                from all_procedures all_proc 
+                                    where lower(all_proc.object_name) = '${packageName}'
+                                    and all_proc.procedure_name is not null 
+                                    order by all_proc.subprogram_id`;
+            }
             try{
                 let result = await this.connection.execute(query);
                 return result.rows;
@@ -192,7 +203,7 @@ export class DBObjects {
         }
     }
 
-    public static async getMethodArguments(clientPath:string|undefined, connectionString:string|undefined, username:string|undefined, password:string|undefined, packageName:string|undefined, methodName:string|undefined, id:number):Promise<any>{
+    public static async getMethodArguments(clientPath:string|undefined, connectionString:string|undefined, username:string|undefined, password:string|undefined, packageName:string|undefined, methodName:string|undefined, id:number, owner:string|undefined):Promise<any>{
         this.connection =  await this.connectTo(clientPath, connectionString, username, password);
 
         if (!this.connection.error){
@@ -209,18 +220,47 @@ export class DBObjects {
                             and lower(object_name)='${methodName}'
                             and subprogram_id=${id}`;
                 }else{
-                    query = `select lower(argument_name), lower(data_type)
+                    query = `select lower(argument_name), 
+                                    case 
+                                        when type_name is not null and (type_owner!=user and type_owner!='PUBLIC') then
+                                            lower(type_owner)||'.'||
+                                            lower(type_name)||
+                                            nvl2(pls_type,'%'||
+                                            lower(pls_type),'')||
+                                            nvl2(type_subname,'.'||lower(type_subname),'')
+                                        when type_name is not null then
+                                            lower(type_name)||
+                                            nvl2(pls_type,'%'||lower(pls_type),'')||
+                                            nvl2(type_subname,'.'||lower(type_subname),'')
+                                        else
+                                            lower(pls_type)
+                                    end data_type
                                 from all_arguments
                                 where lower(package_name) = '${packageName}'
                                 and lower(object_name)='${methodName}'
                                 and subprogram_id=${id}`;
                 }
             }else{
-                query = `select lower(argument_name), lower(data_type)
+                query = `select lower(argument_name),
+                                case 
+                                    when type_name is not null and (type_owner!=user and type_owner!='PUBLIC') then
+                                        lower(type_owner)||'.'||
+                                        lower(type_name)||
+                                        nvl2(pls_type,'%'||
+                                        lower(pls_type),'')||
+                                        nvl2(type_subname,'.'||lower(type_subname),'')
+                                    when type_name is not null then
+                                        lower(type_name)||
+                                        nvl2(pls_type,'%'||lower(pls_type),'')||
+                                        nvl2(type_subname,'.'||lower(type_subname),'')
+                                    else
+                                        lower(pls_type)
+                                end data_type
                             from all_arguments
                             where package_name is null
                             and lower(object_name)='${methodName}'
-                            and subprogram_id=${id}`;
+                            and subprogram_id=${id}
+                            and (owner=user or lower(owner)='${owner}')`;
             }
             try{
                 let result = await this.connection.execute(query);

@@ -8,8 +8,8 @@ export class Cache{
 
     private objects:any= {
         items: [],
-        packages: {},
-        methods: {}
+        packages: [],
+        methods: []
     };
 
     private argument={
@@ -37,26 +37,21 @@ export class Cache{
     public addPackage(name:string|undefined, owner:string):any{
 
         let cache = this.objects;
-        if(name && !cache.packages[name]){
-            cache.packages[name]={};
-            if(owner!==''){
-                cache.packages[name].owner=owner;
-            }
-            cache.packages[name].methods=[];
+        let index = cache.packages.findIndex((aPackage:{name:string, owner:string})=>aPackage.name===name && aPackage.owner===owner);
+        if(name && index === -1){
+            cache.packages.push({name: name, owner: owner, methods:[]});
         }
     }
 
     public addMethod(methodName:string|undefined, methodId:number|undefined, owner:string|undefined){
         try{
-            let cache = this.objects;
-            if(methodName){     
-                if (!cache.methods[methodName]){ 
-                    cache.methods[methodName]={};
-                    cache.methods[methodName].id=methodId;
-                    cache.methods[methodName].owner=owner;
-                    cache.methods[methodName].arguments={};
-                }
-            } 
+            let cache = this.objects;    
+
+            let index = cache.methods.findIndex((aMethod:{name:string, owner:string})=>aMethod.name===methodName && aMethod.owner===(owner?owner:null));
+
+            if (methodName && index === -1){ 
+                cache.methods.push({name: methodName, owner: owner, methodId: methodId, arguments:{}});
+            }
             
             return cache;   
         }catch(err){
@@ -64,28 +59,26 @@ export class Cache{
         }
     }
 
-    public addMethodToPackage(methodName:string|undefined, methodId:number|undefined, packageName:string|undefined){
+    public addMethodToPackage(methodName:string|undefined, methodId:number|undefined, packageName:string|undefined, owner:string|undefined){
 
         let cache = this.objects;
-
+        let index = cache.packages.findIndex((aPackage:{name:string, owner:string})=>aPackage.name===packageName && aPackage.owner===owner);
         if(methodName 
-                && packageName 
-                && methodId
-                && cache.packages[packageName]
+            && methodId
             ){    
-            if (cache.packages[packageName].methods.filter((aMethod: 
+            if (cache.packages[index].methods.filter((aMethod: 
                                                                {name:string; id:number})=>
                                                                aMethod.name===methodName && 
                                                                aMethod.id===methodId
                                                             ).length===0
                 
             ){
-                cache.packages[packageName].methods.push({name: methodName, id: methodId, arguments: {}});
+                cache.packages[index].methods.push({name: methodName, id: methodId, arguments: {}});
             }
         }  
     }
 
-    public addArgumentToMethod(argumentName:string|undefined, type:string|undefined, methodName:string|undefined, methodId:number, packageName:string|undefined){
+    public addArgumentToMethod(argumentName:string|undefined, type:string|undefined, methodName:string|undefined, methodId:number, packageName:string|undefined, owner:string|undefined){
         
         if (argumentName){
             this.argument.name ="" + argumentName;
@@ -93,35 +86,36 @@ export class Cache{
             this.argument.name ="RETURN";
         }
         
-        
+        let packageIndex = this.objects.packages.findIndex((aPackage:{name:string, owner:string})=>aPackage.name===packageName && aPackage.owner===owner);
+        let methodIndex = this.objects.methods.findIndex((aMethod:{name:string, owner:string})=>aMethod.name===methodName && aMethod.owner===(owner?owner:null));
         
         if(type 
                 && methodName 
                 && packageName
-                //&& this.objects.packages[packageName].methods.length
+                && packageIndex!==-1
                 ){
-            let index = this.objects.packages[packageName].methods.findIndex((aMethod:{name:string; id:number})=>aMethod.name===methodName && aMethod.id===methodId);
+            let index = this.objects.packages[packageIndex].methods.findIndex((aMethod:{name:string; id:number})=>aMethod.name===methodName && aMethod.id===methodId);
             if (index >= 0){
-                this.objects.packages[packageName].methods[index].arguments[this.argument.name]={};
-                this.objects.packages[packageName].methods[index].arguments[this.argument.name].type = type;
+                this.objects.packages[packageIndex].methods[index].arguments[this.argument.name]={};
+                this.objects.packages[packageIndex].methods[index].arguments[this.argument.name].type = type;
                 
                 if (!argumentName){
-                    this.objects.packages[packageName].methods[index].arguments[this.argument.name].return = true;
+                    this.objects.packages[packageIndex].methods[index].arguments[this.argument.name].return = true;
                 }
             }else{
                 console.log('Method not found!');
             }
         }else if (type 
                     && methodName 
-                    && this.objects.methods[methodName]){
-            
-            if (!this.objects.methods[methodName].arguments[ this.argument.name ]){
+                    && methodIndex!==-1){
+                        
+            if (!this.objects.methods[methodIndex].arguments[ this.argument.name ]){
 
-                this.objects.methods[methodName].arguments[ this.argument.name ]={};
-                this.objects.methods[methodName].arguments[ this.argument.name ].type = type;
+                this.objects.methods[methodIndex].arguments[ this.argument.name ]={};
+                this.objects.methods[methodIndex].arguments[ this.argument.name ].type = type;
 
                 if (!argumentName){
-                    this.objects.methods[methodName].arguments[ this.argument.name ].return = true;
+                    this.objects.methods[methodIndex].arguments[ this.argument.name ].return = true;
                 }
 
             }

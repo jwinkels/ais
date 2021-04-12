@@ -46,14 +46,17 @@ The User Object Cache will contain the following Objects:
 It is recommended to let this option be activated.
 #### APEX Object Cache
 
-The APEX Object Cache contains all APEX_* packages with all of their methods (and of course arguments and return types) regardless of them to be part of the documentation or not. The process of loading the APEX packages is taking a while, therefor it is recommended to save a central apex cache and use the 'ApexCacheFile'-Setting.
+The APEX Object Cache contains all APEX_* packages with all of their methods (and of course arguments and return types) regardless of them to be part of the documentation or not. The process of loading the APEX packages is taking a while, therefor it is recommended to save a central apex cache and use the 'ApexCacheFile'-Setting.solved Known Issues
 
-## Known Issues
-
-- When there is a package with the same name as a granted package the methods will be merged (will be solved!)
+|Description|Status|Version|
+|-----------|------|-------|
+|When there is a package with the same name as a granted package the methods will be merged| solved | 2.2.7|
 
 ## Release Notes
 
+### 2.2.7
+- solved issue merging methods on equal package names
+- nicer argument-types
 ### 2.2.5
 - solved issue with apex object
 - more informative package loading

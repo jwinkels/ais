@@ -1,5 +1,13 @@
 # Change Log
 
+### 2.2.7
+- solved issue merging methods on equal package names
+- nicer argument-types
+### 2.2.5-6 
+- solved issue with apex object
+- more informative package loading
+### 2.2.1-4
+- minor changes
 ### 2.2.0
 - autocompletion enhancements
 
