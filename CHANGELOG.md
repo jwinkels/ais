@@ -1,5 +1,6 @@
 # Change Log
-
+### 2.2.9
+- percentage of loaded methods in package is shown during activation/update
 ### 2.2.8
 - fixed Issues with completionlist
 ### 2.2.7

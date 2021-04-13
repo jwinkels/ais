@@ -32,9 +32,9 @@ export function activate(context: vscode.ExtensionContext) {
 		let stepForward = 30 / objects.length;
 		if (!objects.error){
 			for(let i=0; i<objects.length; i++){
-				progress.report({increment: stepForward, message: ' package - ' + objects[i][0].toString()});
+				progress.report({increment: stepForward, message: ' package - ' + objects[i][0].toString() + ' - 0%'});
 				cache.addPackage(objects[i][0].toString(), objects[i][1]);
-				await loadMethods(instantClientPath, connectionString, username, password, objects[i][0].toString(), objects[i][1], cache);
+				await loadMethods(instantClientPath, connectionString, username, password, objects[i][0].toString(), objects[i][1], cache, progress);
 			}
 		}else{
 			vscode.window.showErrorMessage(objects.error);
@@ -47,14 +47,14 @@ export function activate(context: vscode.ExtensionContext) {
 		let stepForward = 50 / objects.length;
 		if (!objects.error){
 			for(let i=0; i<objects.length; i++){
-				progress.report({increment: stepForward, message: ' package - ' + objects[i].toString()});
+				progress.report({increment: stepForward, message: ' package - ' + objects[i].toString() + ' - 0%'});
 				cache.addPackage(objects[i].toString(),'');
-				await loadMethods(instantClientPath, connectionString, username, password, objects[i].toString(), '' , cache);
+				await loadMethods(instantClientPath, connectionString, username, password, objects[i].toString(), '' , cache, progress);
 			}
 		}
 	}
 
-	async function loadMethods(instantClientPath:string, connectionString:string, username:string, password:string, packageName:string|undefined, owner:string|undefined, cache:Cache){
+	async function loadMethods(instantClientPath:string, connectionString:string, username:string, password:string, packageName:string|undefined, owner:string|undefined, cache:Cache, progress:vscode.Progress<{message?: string | undefined; increment?: number | undefined;}>){
 
 		let methods:any;
 
@@ -66,9 +66,13 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 
 			if (!methods.error){
+
+				let ratio = 100/methods.length;
+
 				for(let i=0; i<methods.length; i++){
 					cache.addMethodToPackage(methods[i][0].toString(), methods[i][1], packageName, owner);
 					await loadArguments(instantClientPath, connectionString, username, password, packageName, methods[i][0].toString(), methods[i][1], owner, cache);
+					progress.report({increment: 0, message: ' package - ' + packageName + ' - '+(ratio*(i+1)).toFixed()+'%'});
 				}
 			}else{
 				vscode.window.showErrorMessage(methods.error);
@@ -130,7 +134,7 @@ export function activate(context: vscode.ExtensionContext) {
 			
 			if(loadApex){
 				progress.report({increment: 10, message: "User stored procedures..."});
-				await loadMethods(instantClientPath, connectionString, username, password, undefined, username, cache);
+				await loadMethods(instantClientPath, connectionString, username, password, undefined, username, cache, progress);
 
 				cache.serialize();
 				
@@ -141,7 +145,7 @@ export function activate(context: vscode.ExtensionContext) {
 				apexCache.serializeApexPackages();
 			}else{
 				progress.report({increment: 50, message: "User stored procedures..."});
-				await loadMethods(instantClientPath, connectionString, username, password, undefined, username, cache);
+				await loadMethods(instantClientPath, connectionString, username, password, undefined, username, cache, progress);
 
 				cache.serialize();	
 			}
