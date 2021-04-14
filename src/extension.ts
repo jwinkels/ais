@@ -224,6 +224,15 @@ class  ApexCompletionItemProvider implements vscode.CompletionItemProvider{
 		this.documentWords = [];
 	}
 
+	private replaceSpecialChars(line:string){
+		const specialChars:string[]=['=','('];
+		let replaced:string=line;
+		for(let i=0; i<specialChars.length; i++){
+			replaced=replaced.replace(specialChars[i],' ');
+		}
+		return replaced;
+	}
+
 	async provideCompletionItems(document: vscode.TextDocument, position: vscode.Position,  token: vscode.CancellationToken, compContext: vscode.CompletionContext){
 		let completionItems:vscode.CompletionItem[]=[];
 		
@@ -392,12 +401,13 @@ class  ApexCompletionItemProvider implements vscode.CompletionItemProvider{
 		let index:number=-1;
 		const linePrefix = document.lineAt(position).text.substr(0, position.character);
 		
-		
 		if (!linePrefix.endsWith('.')) {
 			return completionItems;
 		}
-		
-		const packageURI = linePrefix.split('.');
+
+		const lineInSpaces = this.replaceSpecialChars(linePrefix).split(' ');
+		const packageURI = lineInSpaces[lineInSpaces.length-1].split('.');
+
 		if (packageURI.length>1){
 			
 			packageName = packageURI[packageURI.length-2].trim();

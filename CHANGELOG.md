@@ -1,4 +1,6 @@
 # Change Log
+### 2.2.10
+- fixed bugs, e.g. method completion list was not working when there is no leading space
 ### 2.2.9
 - percentage of loaded methods in package is shown during activation/update
 ### 2.2.8
