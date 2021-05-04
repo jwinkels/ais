@@ -1,4 +1,8 @@
 # Change Log
+### 2.3.1
+- update command also activates the plugin
+- removed bugs
+- prefix for properties (you may need to reset your properties)
 ### 2.2.10
 - fixed bugs, e.g. method completion list was not working when there is no leading space
 ### 2.2.9

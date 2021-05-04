@@ -87,7 +87,7 @@ export class Cache{
         }
         
         let packageIndex = this.objects.packages.findIndex((aPackage:{name:string, owner:string})=>aPackage.name===packageName && aPackage.owner===owner);
-        let methodIndex = this.objects.methods.findIndex((aMethod:{name:string, owner:string})=>aMethod.name===methodName && aMethod.owner===(owner?owner:null));
+        let methodIndex = this.objects.methods.findIndex((aMethod:{name:string, owner:string})=>aMethod.name===methodName && aMethod.owner===(owner?owner:undefined));
         
         if(type 
                 && methodName 
@@ -107,8 +107,7 @@ export class Cache{
             }
         }else if (type 
                     && methodName 
-                    && methodIndex!==-1){
-                        
+                    && methodIndex!==-1){       
             if (!this.objects.methods[methodIndex].arguments[ this.argument.name ]){
 
                 this.objects.methods[methodIndex].arguments[ this.argument.name ]={};
@@ -122,15 +121,14 @@ export class Cache{
         }
     }
 
-    public async load():Promise<any>{
-        //const folderUri = vscode.workspace.workspaceFolders.;
-        
+    public async load():Promise<any>{        
         try{
             if(!vscode.workspace.workspaceFolders){
                 vscode.window.showInformationMessage('No folder or workspace opened');
                 return undefined;
             }
-
+            
+            
             const currentPath = vscode.workspace.workspaceFolders[0].uri;
             const fileUri     = currentPath.with({path: posix.join(currentPath.path,'.ais','cache.yaml')});
 
@@ -148,10 +146,10 @@ export class Cache{
             if(!vscode.workspace.workspaceFolders){
                 return vscode.window.showInformationMessage('No folder or workspace opened');
             }
-
+            
             const currentPath = vscode.workspace.workspaceFolders[0].uri;
             const fileUri     = currentPath.with({path: posix.join(currentPath.path,'.ais','cache.yaml')});
-        
+
             vscode.workspace.fs.writeFile(fileUri, Buffer.from(yaml.stringify(this.objects)));
         }catch(err){
             console.log(err);

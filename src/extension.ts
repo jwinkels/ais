@@ -26,7 +26,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	async function loadPackages(instantClientPath:string, connectionString:string, username:string, password:string, publicPackages:string, cache:Cache, progress:vscode.Progress<{message?: string | undefined; increment?: number | undefined;}>):Promise<any>{
 		let packageList = publicPackages.split(',');
-		publicPackages = "'" + packageList.join("','") + "'";
+		publicPackages = "'" + packageList.join("','").toUpperCase() + "'";
 		
 		let objects = await DBObjects.getPackages(instantClientPath, connectionString, username, password, publicPackages);
 		let stepForward = 30 / objects.length;
@@ -101,10 +101,18 @@ export function activate(context: vscode.ExtensionContext) {
 		try{
 			argumentList = await DBObjects.getMethodArguments(instantClientPath, connectionString, username, password, packageName, methodName, id, owner);
 			if (!argumentList.error){
+				
 				for(let i=0; i<argumentList.length; i++){
+					
 					if(argumentList[i][0]){
+						if (methodName === "property_has_project"){
+							console.log('aaa',argumentList[i][1].toString() ,id, methodName, packageName, owner);
+						}
 						cache.addArgumentToMethod(argumentList[i][0].toString(), argumentList[i][1].toString(), methodName, id, packageName, owner);
 					}else{
+						if (methodName === "property_has_project"){
+							console.log('bbbb',argumentList[i][1].toString() ,id, methodName, packageName, owner);
+						}
 						cache.addArgumentToMethod(undefined, argumentList[i][1].toString(), methodName, id, packageName, owner);
 					}
 				}
@@ -117,9 +125,9 @@ export function activate(context: vscode.ExtensionContext) {
 	}
 
 	async function load(instantClientPath:string, connectionString:string, username:string, password:string, publicPackages:string){
-		let cache:any 		= await new Cache().load();
-		let apexCache:any	= await new Cache().loadApexPackages(undefined);
-		let loadApex    	  = vscode.workspace.getConfiguration('').get('options.LoadApexPackages');
+		let cache:any 		= new Cache(); 
+		let apexCache:any	= new Cache(); 
+		let loadApex    	= vscode.workspace.getConfiguration('').get('apexIntelliSense.options.LoadApexPackages');
 
 		await vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
@@ -141,14 +149,13 @@ export function activate(context: vscode.ExtensionContext) {
 				vscode.window.showInformationMessage('Loading APEX Packages  - this may take several minutes!');
 				await loadApexPackages(instantClientPath, connectionString, username, password, apexCache, progress);
 				
-				vscode.workspace.getConfiguration('').update('options.LoadApexPackages', false, vscode.ConfigurationTarget.Workspace);
+				vscode.workspace.getConfiguration('').update('apexIntelliSense.options.LoadApexPackages', false, vscode.ConfigurationTarget.Workspace);
 				apexCache.serializeApexPackages();
 			}else{
 				progress.report({increment: 50, message: "User stored procedures..."});
 				await loadMethods(instantClientPath, connectionString, username, password, undefined, username, cache, progress);
-
-				cache.serialize();	
 			}
+			cache.serialize();	
 		});
 		
 	}
@@ -156,16 +163,48 @@ export function activate(context: vscode.ExtensionContext) {
 	const disposable = vscode.commands.registerCommand('ail.activate', async () => {
 
 		let password:string;	
-		let username =""+vscode.workspace.getConfiguration('',).get('credentials.username');
-		let instantClientPath = "" + vscode.workspace.getConfiguration('').get('paths.OracleInstantClientPath');
-		let connectionString  = "" + vscode.workspace.getConfiguration('').get('credentials.connection');
-		let publicPackages    = "" + vscode.workspace.getConfiguration('').get('options.PublicPackages');
-		let loadOnActivate    = vscode.workspace.getConfiguration('').get('options.LoadObjectsOnActivate');
+		let username =""+vscode.workspace.getConfiguration('',).get('apexIntelliSense.credentials.username');
+		let instantClientPath = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.paths.OracleInstantClientPath');
+		let connectionString  = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.credentials.connection');
+		let publicPackages    = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.options.PublicPackages');
+		let loadOnActivate    = vscode.workspace.getConfiguration('').get('apexIntelliSense.options.LoadObjectsOnActivate');
 
 		try{
-			
-			if (loadOnActivate){
+			if (instantClientPath === ""){
+				vscode.window.showErrorMessage('ApexIntelliSense: please configure InstantClient path');
+			}else{
+				if (loadOnActivate){
+					password = "" +  await vscode.window.showInputBox({password: true, prompt: `Password for ${username}`});
+					let connection = await DBObjects.connectTo(instantClientPath, connectionString, username, password);
+
+					if(connection.error){
+						vscode.window.showErrorMessage(connection.error);
+						deactivate();
+						return undefined;
+					}
+
+					await load(instantClientPath, connectionString, username, password, publicPackages);
+				}
+				vscode.window.showInformationMessage('ApexIntelliSense: activated');
+			}
+		}catch(err){
+			console.log(err);
+		}
+	});	
+
+	const updateCache = vscode.commands.registerCommand('ail.update', async () => {
+		let password:string|undefined;	
+		let username =""+vscode.workspace.getConfiguration('').get('apexIntelliSense.credentials.username');
+		let instantClientPath = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.paths.OracleInstantClientPath');
+		let connectionString  = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.credentials.connection');
+		let publicPackages    = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.options.PublicPackages');
+
+		try{
+			if (instantClientPath === ""){
+				vscode.window.showErrorMessage('ApexIntelliSense: please configure InstantClient path');
+			}else{
 				password = "" +  await vscode.window.showInputBox({password: true, prompt: `Password for ${username}`});
+
 				let connection = await DBObjects.connectTo(instantClientPath, connectionString, username, password);
 
 				if(connection.error){
@@ -175,41 +214,21 @@ export function activate(context: vscode.ExtensionContext) {
 				}
 
 				await load(instantClientPath, connectionString, username, password, publicPackages);
+				vscode.window.showInformationMessage('ApexIntelliSense: Cache updated');
 			}
-			vscode.window.showInformationMessage('ApexIntelliSense is activated!');
 		}catch(err){
 			console.log(err);
 		}
 	});
 
-	const updateChache = vscode.commands.registerCommand('ail.updateCache', async () => {
-		let password:string|undefined;	
-		let username =""+vscode.workspace.getConfiguration('').get('credentials.username');
-		let instantClientPath = "" + vscode.workspace.getConfiguration('').get('paths.OracleInstantClientPath');
-		let connectionString  = "" + vscode.workspace.getConfiguration('').get('credentials.connection');
-		let publicPackages    = "" + vscode.workspace.getConfiguration('').get('options.PublicPackages');
-
-		if(!context.secrets.get(username)){
-			password = "" +  await vscode.window.showInputBox({password: true, prompt: `Password for ${username}`});
-			context.secrets.store(username, password);
-		}else{
-			password = "" + await context.secrets.get(username);
-		}
-
-		await load(instantClientPath, connectionString, username, password, publicPackages);
-		vscode.window.showInformationMessage('ApexIntelliSense Cache is updated!');
-	});
-	
-	
-
-	context.subscriptions.push(	disposable,
-							   	updateChache,
-								vscode.languages.registerCompletionItemProvider(
-									['plaintext','sql','oracle'],
-									new ApexCompletionItemProvider,
-									'.'
-								)
-	);
+	context.subscriptions.push( disposable,
+										  updateCache,
+										 vscode.languages.registerCompletionItemProvider(
+										   ['plaintext','sql','oracle','plsql'],
+											new ApexCompletionItemProvider,
+											'.'
+											)
+									);
 }
 
 // this method is called when your extension is deactivated
@@ -259,7 +278,7 @@ class  ApexCompletionItemProvider implements vscode.CompletionItemProvider{
 		this.documentWords=[];
 		if(matches){
 			for (let i=0; i<matches.length; i++){
-				this.documentWords[i]=matches[i].replace(/(\r\n|\n|\r)/gm, "");;
+				this.documentWords.push(matches[i].replace(/(\r\n|\n|\r)/gm, ""));
 			}
 		}
 	}
@@ -288,7 +307,7 @@ class  ApexCompletionItemProvider implements vscode.CompletionItemProvider{
 
 	private async getSchemaPackages():Promise<vscode.CompletionItem[]> {
 		let completionItems : vscode.CompletionItem[]=[];
-		let apexCachePath:string|undefined 	= vscode.workspace.getConfiguration('').get('paths.ApexCacheFile');
+		let apexCachePath:string|undefined 	= vscode.workspace.getConfiguration('').get('apexIntelliSense.paths.ApexCacheFile');
 		let userObjectcache:Cache   		= await new Cache().load();
 		let apexObjectCache:Cache			= await new Cache().loadApexPackages(apexCachePath);
 		let cache:any               		= userObjectcache.getCache();
@@ -390,7 +409,7 @@ class  ApexCompletionItemProvider implements vscode.CompletionItemProvider{
 
 	async getMethods(document: vscode.TextDocument, position: vscode.Position):Promise<vscode.CompletionItem[]>{
 		let completionItems:vscode.CompletionItem[]=[];
-		let apexCachePath:string|undefined 	= vscode.workspace.getConfiguration('').get('paths.ApexCacheFile');		
+		let apexCachePath:string|undefined 	= vscode.workspace.getConfiguration('').get('apexIntelliSense.paths.ApexCacheFile');		
 		let userObjectcache:Cache   		= await new Cache().load();
 		let apexObjectCache:Cache			= await new Cache().loadApexPackages(apexCachePath);
 		let cache:any               		= userObjectcache.getCache();

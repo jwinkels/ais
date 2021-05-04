@@ -3,7 +3,7 @@
 	"name": "ais",
 	"displayName": "ApexIntelliSense",
 	"description": "Code Completion for Apex Development",
-	"version": "2.2.10",
+	"version": "2.3.1",
 	"repository": {
 		"type": "git",
 		"email": "Jan.Winkels@opitz-consulting.com",
@@ -25,7 +25,8 @@
         "intellisense"
     ],
 	"activationEvents": [
-		"onCommand:ail.activate"
+		"onCommand:ail.activate",
+		"onCommand:ail.update"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
@@ -36,40 +37,40 @@
 				"title": "Activate"
 			},
 			{
-				"command": "ail.updateCache",
+				"command": "ail.update",
 				"category": "ApexIntelliSense",
-				"title": "Update Cache"
+				"title": "Update"
 			}
 		],
 		"configuration": [
 			{
 				"title": "ApexIntelliSense",
 				"properties": {
-					"credentials.connection": {
+					"apexIntelliSense.credentials.connection": {
 						"type": "string",
 						"description": "connection string [HOST:PORT/SERVICENAME]"
 					},
-					"credentials.username": {
+					"apexIntelliSense.credentials.username": {
 						"type": "string",
 						"description": "Parsing schema name"
 					},
-					"paths.OracleInstantClientPath": {
+					"apexIntelliSense.paths.OracleInstantClientPath": {
 						"type": "string",
 						"description": "Path to your Oracle Instant Client"
 					},
-					"paths.ApexCacheFile": {
+					"apexIntelliSense.paths.ApexCacheFile": {
 						"type": "string",
 						"description": "Path to a central APEX cache file"
 					},
-					"options.PublicPackages": {
+					"apexIntelliSense.options.PublicPackages": {
 						"type": "array",
 						"description": "load packages that are granted to public"
 					},
-					"options.LoadObjectsOnActivate": {
+					"apexIntelliSense.options.LoadObjectsOnActivate": {
 						"type": "boolean",
 						"description": "load all database objects on activation (if false load from cache)"
 					},
-					"options.LoadApexPackages": {
+					"apexIntelliSense.options.LoadApexPackages": {
 						"type": "boolean",
 						"description": "When checked the APEX-Source packages are loaded"
 					}

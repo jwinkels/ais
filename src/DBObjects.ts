@@ -99,23 +99,13 @@ export class DBObjects {
         this.connection =  await this.connectTo(clientPath, connectionString, username, password);
 
         if (!this.connection.error){
-            let query='';
-            if (owner){
-                query = `select lower(all_proc.procedure_name),  
-                                    all_proc.subprogram_id
-                               from all_procedures all_proc 
-                                where lower(all_proc.object_name) = '${packageName}'
-                                and all_proc.procedure_name is not null
-                                and (owner=user or lower(owner)='${owner}') 
-                                order by all_proc.subprogram_id`;
-            }else{
-                query = `select lower(all_proc.procedure_name),  
-                                        all_proc.subprogram_id
-                                from all_procedures all_proc 
-                                    where lower(all_proc.object_name) = '${packageName}'
-                                    and all_proc.procedure_name is not null 
-                                    order by all_proc.subprogram_id`;
-            }
+            const query = `select lower(all_proc.procedure_name),  
+                                all_proc.subprogram_id
+                            from all_procedures all_proc 
+                            where lower(all_proc.object_name) = '${packageName}'
+                            and all_proc.procedure_name is not null
+                            and (owner=user or lower(owner)='${owner}') 
+                            order by all_proc.subprogram_id`;
             try{
                 let result = await this.connection.execute(query);
                 return result.rows;

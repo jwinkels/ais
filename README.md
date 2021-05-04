@@ -56,6 +56,11 @@ The APEX Object Cache contains all APEX_* packages with all of their methods (an
 |After Update on 2.2.7 completionlist is broken| solved | 2.2.8|
 
 ## Release Notes
+
+### 2.3.1
+- update command also activates the plugin
+- removed bugs
+- prefix for properties (you may need to reset your properties)
 ### 2.2.9
 - percentage of loaded methods in package is shown during activation/update
 ### 2.2.8
