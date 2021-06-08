@@ -3,7 +3,7 @@
 	"name": "ais",
 	"displayName": "ApexIntelliSense",
 	"description": "Code Completion for Apex Development",
-	"version": "2.3.1",
+	"version": "2.4.1",
 	"repository": {
 		"type": "git",
 		"email": "Jan.Winkels@opitz-consulting.com",
@@ -18,15 +18,19 @@
 		"Programming Languages"
 	],
 	"keywords": [
-        "plsql",
-        "apex",
-        "orclapex",
-        "oracle",
-        "intellisense"
-    ],
+		"plsql",
+		"apex",
+		"orclapex",
+		"oracle",
+		"intellisense"
+	],
 	"activationEvents": [
 		"onCommand:ail.activate",
-		"onCommand:ail.update"
+		"onCommand:ail.update",
+		"onLanguage:plsql",
+		"onLanguage:sql",
+		"onLanguage:javascript",
+		"onLanguage:oracle"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
@@ -73,6 +77,20 @@
 					"apexIntelliSense.options.LoadApexPackages": {
 						"type": "boolean",
 						"description": "When checked the APEX-Source packages are loaded"
+					},
+					"apexIntelliSense.javascript.imageDirectory": {
+						"type": "string",
+						"description": "images directory name",
+						"default": "/i/"
+					},
+					"apexIntelliSense.javascript.applicationServer": {
+						"type": "string",
+						"description": "application server [HOST:PORT]"
+					},
+					"apexIntelliSense.others.languages": {
+						"type": "array",
+						"description": "List of languages where you want to use ApexIntelliSense",
+						"default":	["plaintext","sql","oracle","plsql","javascript"]
 					}
 				}
 			}
@@ -103,6 +121,7 @@
 		"@types/oracledb": "^5.1.0",
 		"@types/text-encoding": "0.0.35",
 		"@types/yaml": "^1.9.7",
-		"oracledb": "^5.1.0"
+		"oracledb": "^5.1.0",
+		"typed-rest-client": "^1.8.4"
 	}
 }

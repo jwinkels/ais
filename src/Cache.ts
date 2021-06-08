@@ -1,10 +1,11 @@
 
 import * as yaml from "yaml";
-const fs = require('fs');
+import * as fs from 'fs';
 import * as vscode from 'vscode';
 import { posix } from 'path';
+import * as httpm from 'typed-rest-client/HttpClient';
 
-export class Cache{
+export class Cache {
 
     private objects:any= {
         items: [],
@@ -20,6 +21,19 @@ export class Cache{
 
     public getCache():any{
         return this.objects;
+    }
+
+    public setApexVersion(version:number, minor:string):any{
+        let cache = this.objects;
+        try {
+            if (version){
+                cache["apexVersion"] = version;
+                cache["minorVersion"] = minor;
+            }
+            return cache;
+        } catch (error) {
+            console.log(error);
+        }
     }
     
     public addItem(name:string|undefined):any{
@@ -174,6 +188,7 @@ export class Cache{
 
             let objectString = Buffer.from(await vscode.workspace.fs.readFile(fileUri)).toString();
             this.objects=yaml.parse(objectString);
+            this.setApexVersion(this.objects.apexVersion, this.objects.minorVersion);
             return this;
         }catch(err){
             console.log(err);
@@ -196,6 +211,47 @@ export class Cache{
             vscode.workspace.fs.writeFile(fileUri, Buffer.from(yaml.stringify(cache)));
         }catch(err){
             console.log(err);
+        }
+    }
+
+    public static async loadApexApi(applicationServer:string, imageDirectory:string){
+        let httpc: httpm.HttpClient = new httpm.HttpClient('ApexIntelliSense');
+        let res: httpm.HttpClientResponse;
+        const apiFileName    = 'apex-js-api.d.ts';
+        const apiPath:string = 'libraries/monaco-editor/apex/' + apiFileName;
+
+        try{
+            if(!vscode.workspace.workspaceFolders){
+                return vscode.window.showInformationMessage('No folder or workspace opened');
+            }
+            
+            const currentPath    = vscode.workspace.workspaceFolders[0].uri;
+            const apiFileUri     = currentPath.with({path: posix.join(currentPath.path,'.ais','apex-js-api.d.ts')});
+ 
+            try{
+                await vscode.workspace.openTextDocument(apiFileUri);
+            }catch{
+                if (applicationServer && imageDirectory){
+
+                    if (applicationServer.includes('http')){
+                        res = await httpc.get(applicationServer + (imageDirectory.endsWith('/') ? imageDirectory : imageDirectory + '/') + apiPath);
+                    }else{
+                        res = await  httpc.get('http://' + applicationServer + (imageDirectory.endsWith('/') ? imageDirectory : imageDirectory + '/') + apiPath);
+                    }
+
+                    if (res.message.statusCode===200){
+
+                        let body = await res.readBody();
+                        await vscode.workspace.fs.writeFile(apiFileUri, Buffer.from(body));
+                        await vscode.workspace.openTextDocument(apiFileUri);
+
+                    }else{
+                        vscode.window.showErrorMessage(`ApexIntelliSense: Could not load APEX JS API from ${applicationServer} - most likely wrong path`);
+                    }
+                }
+            }
+        }catch(err){
+            vscode.window.showErrorMessage(`ApexIntelliSense: Could not load APEX JS API from ${applicationServer} - connection problems`);
         }
     }
 }

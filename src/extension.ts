@@ -105,14 +105,8 @@ export function activate(context: vscode.ExtensionContext) {
 				for(let i=0; i<argumentList.length; i++){
 					
 					if(argumentList[i][0]){
-						if (methodName === "property_has_project"){
-							console.log('aaa',argumentList[i][1].toString() ,id, methodName, packageName, owner);
-						}
 						cache.addArgumentToMethod(argumentList[i][0].toString(), argumentList[i][1].toString(), methodName, id, packageName, owner);
 					}else{
-						if (methodName === "property_has_project"){
-							console.log('bbbb',argumentList[i][1].toString() ,id, methodName, packageName, owner);
-						}
 						cache.addArgumentToMethod(undefined, argumentList[i][1].toString(), methodName, id, packageName, owner);
 					}
 				}
@@ -134,6 +128,9 @@ export function activate(context: vscode.ExtensionContext) {
 			title: "Loading ",
 			cancellable: true
 		}, async (progress, token) => {
+
+			apexCache.setApexVersion(DBObjects.apexVersion, DBObjects.apexMinorVersion);
+			
 			progress.report({ increment: 0 , message: "Page Items..."});
 			await loadItems(instantClientPath, connectionString, username, password, cache);
 			
@@ -146,7 +143,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 				cache.serialize();
 				
-				vscode.window.showInformationMessage('Loading APEX Packages  - this may take several minutes!');
+				vscode.window.showInformationMessage(`Loading APEX ${DBObjects.apexVersion}.${DBObjects.apexMinorVersion} Packages  - this may take several minutes!`);
 				await loadApexPackages(instantClientPath, connectionString, username, password, apexCache, progress);
 				
 				vscode.workspace.getConfiguration('').update('apexIntelliSense.options.LoadApexPackages', false, vscode.ConfigurationTarget.Workspace);
@@ -168,6 +165,8 @@ export function activate(context: vscode.ExtensionContext) {
 		let connectionString  = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.credentials.connection');
 		let publicPackages    = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.options.PublicPackages');
 		let loadOnActivate    = vscode.workspace.getConfiguration('').get('apexIntelliSense.options.LoadObjectsOnActivate');
+		let imagesDirectory   = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.javascript.imageDirectory');
+		let applicationServer = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.javascript.applicationServer');
 
 		try{
 			if (instantClientPath === ""){
@@ -182,9 +181,27 @@ export function activate(context: vscode.ExtensionContext) {
 						deactivate();
 						return undefined;
 					}
-
-					await load(instantClientPath, connectionString, username, password, publicPackages);
+					
+					vscode.window.showInformationMessage('ApexIntelliSense: Checking prerequisites');
+					let check = await DBObjects.getApexVersion(instantClientPath, connectionString, username, password);
+					if (check.version){
+						if ( check.version >= 18 ){
+							await load(instantClientPath, connectionString, username, password, publicPackages);
+						}else{
+							vscode.window.showErrorMessage("ApexIntelliSense: Your APEX Version is unfortunately outdated and not compatible");
+						}
+					}else{
+						vscode.window.showErrorMessage("ApexIntelliSense: ", check.error);
+					}
+					
 				}
+				
+				if (  DBObjects.apexVersion >= 20 ){
+					await Cache.loadApexApi(applicationServer, imagesDirectory);
+				}else{
+					vscode.window.showInformationMessage("ApexIntelliSense: Cannot load APEX JS API for APEX versions minor 20");
+				}
+				
 				vscode.window.showInformationMessage('ApexIntelliSense: activated');
 			}
 		}catch(err){
@@ -198,6 +215,8 @@ export function activate(context: vscode.ExtensionContext) {
 		let instantClientPath = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.paths.OracleInstantClientPath');
 		let connectionString  = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.credentials.connection');
 		let publicPackages    = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.options.PublicPackages');
+		let imagesDirectory   = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.javascript.imageDirectory');
+		let applicationServer = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.javascript.applicationServer');
 
 		try{
 			if (instantClientPath === ""){
@@ -213,7 +232,25 @@ export function activate(context: vscode.ExtensionContext) {
 					return undefined;
 				}
 
-				await load(instantClientPath, connectionString, username, password, publicPackages);
+				vscode.window.showInformationMessage('ApexIntelliSense: Checking prerequisites');
+				let check = await DBObjects.getApexVersion(instantClientPath, connectionString, username, password);
+				
+				if (check.version){
+					if ( check.version >= 18 ){
+						await load(instantClientPath, connectionString, username, password, publicPackages);
+					}else{
+						vscode.window.showErrorMessage("ApexIntelliSense: Your APEX Version is unfortunately outdated and not compatible");
+					}
+				}else{
+					vscode.window.showErrorMessage("ApexIntelliSense: ", check.error);
+				}
+				
+				if (  DBObjects.apexVersion >= 20 ){
+					await Cache.loadApexApi(applicationServer, imagesDirectory);
+				}else{
+					vscode.window.showInformationMessage("ApexIntelliSense: Cannot load APEX JS API for APEX versions minor 20");
+				}
+				
 				vscode.window.showInformationMessage('ApexIntelliSense: Cache updated');
 			}
 		}catch(err){
@@ -221,14 +258,25 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
-	context.subscriptions.push( disposable,
-										  updateCache,
-										 vscode.languages.registerCompletionItemProvider(
-										   ['plaintext','sql','oracle','plsql'],
-											new ApexCompletionItemProvider,
-											'.'
+	let imagesDirectory   = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.javascript.imageDirectory');
+	let applicationServer = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.javascript.applicationServer');
+	let activationLangs:string[]|undefined   = vscode.workspace.getConfiguration('').get('apexIntelliSense.others.languages');
+
+	Cache.loadApexApi(applicationServer, imagesDirectory);
+
+	
+	if(activationLangs && activationLangs.length!==0){
+		context.subscriptions.push( disposable,
+											updateCache,
+											vscode.languages.registerCompletionItemProvider(
+												activationLangs,
+												new ApexCompletionItemProvider,
+												'.'
 											)
-									);
+			);
+	}else{
+		vscode.window.showErrorMessage('ApexIntelliSense: Could not activate - no languages defined - change settings please');
+	}
 }
 
 // this method is called when your extension is deactivated

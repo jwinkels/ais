@@ -1,4 +1,5 @@
 import * as ORACLEDB from 'oracledb';
+import { stringify } from 'yaml';
 
 export interface IConnectionProperties {
     user: string,
@@ -11,6 +12,8 @@ export interface IConnectionProperties {
 export class DBObjects {
 
     static connection:any;
+    static apexVersion:number;
+    static apexMinorVersion:string;
 
     public static async connectTo(clientPath:string|undefined, connectionString:string|undefined, username:string|undefined, password:string|undefined):Promise<any>{
         if (clientPath && clientPath !== ""){
@@ -45,6 +48,26 @@ export class DBObjects {
         }
 
         return undefined;
+    }
+
+    public static async getApexVersion(clientPath:string|undefined, connectionString:string|undefined, username:string|undefined, password:string|undefined):Promise<any>{
+        this.connection = await this.connectTo(clientPath, connectionString, username, password);
+        if (!this.connection.error){
+            let query ="select version_no from apex_release";
+            try{
+                let version = await this.connection.execute(query);
+                let versionString:string = version.rows[0][0];
+                let firstDot:number = versionString.indexOf('.');
+                this.apexVersion = Number.parseInt(versionString.substr(0, firstDot));
+                firstDot = firstDot + 1;
+                this.apexMinorVersion = versionString.substr(firstDot, versionString.indexOf('.', firstDot) - firstDot);
+                return {version: this.apexVersion, fullVersion: version.rows[0][0]};
+            }catch(err){
+                return {error: "Your APEX Version is unfortunately outdated and not compatible"};
+            }
+        }else{
+            console.log("Failed to connect!");
+        }
     }
 
     public static async getPageItems(clientPath:string|undefined, connectionString:string|undefined, username:string|undefined, password:string|undefined):Promise<any>{
