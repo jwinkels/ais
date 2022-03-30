@@ -156,7 +156,6 @@ export function activate(context: vscode.ExtensionContext) {
 		});
 		
 	}
-
 	const disposable = vscode.commands.registerCommand('ail.activate', async () => {
 
 		let password:string;	
@@ -201,13 +200,17 @@ export function activate(context: vscode.ExtensionContext) {
 				}else{
 					vscode.window.showInformationMessage("ApexIntelliSense: Cannot load APEX JS API for APEX versions minor 20");
 				}
-				
+
 				vscode.window.showInformationMessage('ApexIntelliSense: activated');
 			}
 		}catch(err){
 			console.log(err);
 		}
 	});	
+
+	const saveListener = vscode.workspace.onDidSaveTextDocument(async(e:vscode.TextDocument)=>{
+		vscode.window.showInformationMessage(e.fileName+" changes saved!");
+	});
 
 	const updateCache = vscode.commands.registerCommand('ail.update', async () => {
 		let password:string|undefined;	
@@ -268,6 +271,7 @@ export function activate(context: vscode.ExtensionContext) {
 	if(activationLangs && activationLangs.length!==0){
 		context.subscriptions.push( disposable,
 											updateCache,
+											saveListener,
 											vscode.languages.registerCompletionItemProvider(
 												activationLangs,
 												new ApexCompletionItemProvider,
@@ -279,11 +283,9 @@ export function activate(context: vscode.ExtensionContext) {
 	}
 }
 
+
 // this method is called when your extension is deactivated
 export function deactivate() {}
-
-
-
 class  ApexCompletionItemProvider implements vscode.CompletionItemProvider{
 	private documentWords: string[];
 
@@ -458,14 +460,14 @@ class  ApexCompletionItemProvider implements vscode.CompletionItemProvider{
 	async getMethods(document: vscode.TextDocument, position: vscode.Position):Promise<vscode.CompletionItem[]>{
 		let completionItems:vscode.CompletionItem[]=[];
 		let apexCachePath:string|undefined 	= vscode.workspace.getConfiguration('').get('apexIntelliSense.paths.ApexCacheFile');		
-		let userObjectcache:Cache   		= await new Cache().load();
-		let apexObjectCache:Cache			= await new Cache().loadApexPackages(apexCachePath);
-		let cache:any               		= userObjectcache.getCache();
-		let apexCache:any		    		= apexObjectCache.getCache();
+		let userObjectcache:Cache   		   = await new Cache().load();
+		let apexObjectCache:Cache			   = await new Cache().loadApexPackages(apexCachePath);
+		let cache:any               		   = userObjectcache.getCache();
+		let apexCache:any		    			   = apexObjectCache.getCache();
 		let methods:any;
-		let packageName="";
-		let owner:string = "";
-		let index:number=-1;
+		let packageName							= "";
+		let owner:string 							= "";
+		let index:number							= -1;
 		const linePrefix = document.lineAt(position).text.substr(0, position.character);
 		
 		if (!linePrefix.endsWith('.')) {
@@ -473,7 +475,7 @@ class  ApexCompletionItemProvider implements vscode.CompletionItemProvider{
 		}
 
 		const lineInSpaces = this.replaceSpecialChars(linePrefix).split(' ');
-		const packageURI = lineInSpaces[lineInSpaces.length-1].split('.');
+		const packageURI 	 = lineInSpaces[lineInSpaces.length-1].split('.');
 
 		if (packageURI.length>1){
 			
