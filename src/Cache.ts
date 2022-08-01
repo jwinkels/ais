@@ -53,7 +53,7 @@ export class Cache {
         let cache = this.objects;
         let index = cache.packages.findIndex((aPackage:{name:string, owner:string})=>aPackage.name===name && aPackage.owner===owner);
         if(name && index === -1){
-            cache.packages.push({name: name, owner: owner, methods:[]});
+            cache.packages.push({name: name, owner: owner, methods:[], variables: []});
         }
     }
 

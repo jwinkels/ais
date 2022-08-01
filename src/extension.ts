@@ -35,7 +35,7 @@ export function activate(context: vscode.ExtensionContext) {
 				progress.report({increment: stepForward, message: ' package - ' + objects[i][0].toString() + ' - 0%'});
 				cache.addPackage(objects[i][0].toString(), objects[i][1]);
 				await loadMethods(instantClientPath, connectionString, username, password, objects[i][0].toString(), objects[i][1], cache, progress);
-				await loadVariables(instantClientPath, connectionString, username, password, objects[i][0].tostring(), objects[i][1], cache, progress);
+				await loadVariables(instantClientPath, connectionString, username, password, objects[i][0].toString(), objects[i][1], cache, progress);
 			}
 		}else{
 			vscode.window.showErrorMessage(objects.error);
@@ -228,9 +228,9 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	});	
 
-	const saveListener = vscode.workspace.onDidSaveTextDocument(async(e:vscode.TextDocument)=>{
+	/*const saveListener = vscode.workspace.onDidSaveTextDocument(async(e:vscode.TextDocument)=>{
 		vscode.window.showInformationMessage(e.fileName+" changes saved!");
-	});
+	});*/
 
 	const updateCache = vscode.commands.registerCommand('ail.update', async () => {
 		let password:string|undefined;	
@@ -291,7 +291,7 @@ export function activate(context: vscode.ExtensionContext) {
 	if(activationLangs && activationLangs.length!==0){
 		context.subscriptions.push( disposable,
 											updateCache,
-											saveListener,
+											//saveListener,
 											vscode.languages.registerCompletionItemProvider(
 												activationLangs,
 												new ApexCompletionItemProvider,
