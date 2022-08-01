@@ -35,6 +35,7 @@ export function activate(context: vscode.ExtensionContext) {
 				progress.report({increment: stepForward, message: ' package - ' + objects[i][0].toString() + ' - 0%'});
 				cache.addPackage(objects[i][0].toString(), objects[i][1]);
 				await loadMethods(instantClientPath, connectionString, username, password, objects[i][0].toString(), objects[i][1], cache, progress);
+				await loadVariables(instantClientPath, connectionString, username, password, objects[i][0].tostring(), objects[i][1], cache, progress);
 			}
 		}else{
 			vscode.window.showErrorMessage(objects.error);
@@ -93,6 +94,25 @@ export function activate(context: vscode.ExtensionContext) {
 				vscode.window.showErrorMessage(methods.error);
 			}
 		}
+	}
+
+	async function loadVariables(instantClientPath:string, connectionString:string, username:string, password:string, packageName:string|undefined, owner:string|undefined, cache:Cache, progress:vscode.Progress<{message?: string | undefined; increment?: number | undefined;}>){
+		let variables:any;
+		if (packageName){
+			variables = await DBObjects.getPackageVariables(instantClientPath, connectionString, username, password, packageName, owner);
+			if (!variables.error){
+
+				let ratio = 100/variables.length;
+
+				for(let i=0; i<variables.length; i++){
+					cache.addGlobalVariableToPackage(variables[i][0].toString(), variables[i][1], packageName, owner);
+					progress.report({increment: 0, message: ' package - ' + packageName + ' - '+(ratio*(i+1)).toFixed()+'%'});
+				}
+			}else{
+				vscode.window.showErrorMessage(variables.error);
+			}
+		}
+		
 	}
 
 	async function loadArguments(instantClientPath:string, connectionString:string, username:string, password:string, packageName:string|undefined, methodName:string|undefined, id:number, owner:string|undefined, cache:Cache){
@@ -315,6 +335,7 @@ class  ApexCompletionItemProvider implements vscode.CompletionItemProvider{
 			completionItems = completionItems.concat(await this.getDocumentDefinitions());
 		}else{
 			completionItems = completionItems.concat(await this.getMethods(document, position));
+			completionItems = completionItems.concat(await this.getGlobals(document, position));
 		}
 		return completionItems;
 	}
@@ -437,11 +458,11 @@ class  ApexCompletionItemProvider implements vscode.CompletionItemProvider{
 		}
 
 		if(details.lastIndexOf(',')!==-1){
-			details = details.substr(0, details.length-1);
+			details = details.substring(0, details.length-1);
 		}
 
 		if (parameters.lastIndexOf(',')!==-1){
-			parameters = parameters.substr(0,parameters.length-1)+'\n);';
+			parameters = parameters.substring(0,parameters.length-1)+'\n);';
 		}else{
 			parameters="";
 		}
@@ -468,7 +489,7 @@ class  ApexCompletionItemProvider implements vscode.CompletionItemProvider{
 		let packageName							= "";
 		let owner:string 							= "";
 		let index:number							= -1;
-		const linePrefix = document.lineAt(position).text.substr(0, position.character);
+		const linePrefix = document.lineAt(position).text.substring(0, position.character);
 		
 		if (!linePrefix.endsWith('.')) {
 			return completionItems;
@@ -485,7 +506,7 @@ class  ApexCompletionItemProvider implements vscode.CompletionItemProvider{
 				owner='';
 			}
 		}else{
-			packageName = linePrefix.substr(0,linePrefix.length-1).trim();
+			packageName = linePrefix.substring(0,linePrefix.length-1).trim();
 		}
 		
 		packageName = packageName.replace(/[^a-zA-Z0-9_]/g, " ");
@@ -508,6 +529,61 @@ class  ApexCompletionItemProvider implements vscode.CompletionItemProvider{
 			this.documentWords=this.documentWords.filter((value)=>value!==methods[i].name);
 			object.insertText = object.label;
 			object = await this.argumentListSnippet(object, methods[i].arguments);
+			completionItems.push(object);
+		}
+
+		if (completionItems.length > 0){
+			return completionItems;
+		}else{
+			return completionItems;
+		}
+	}
+
+	async getGlobals(document: vscode.TextDocument, position: vscode.Position):Promise<vscode.CompletionItem[]>{
+		let completionItems:vscode.CompletionItem[]=[];
+		let userObjectcache:Cache   		   = await new Cache().load();
+		let cache:any               		   = userObjectcache.getCache();
+		let globals:any;
+		let packageName							= "";
+		let owner:string 							= "";
+		let index:number							= -1;
+
+		const linePrefix = document.lineAt(position).text.substring(0, position.character);
+		
+		if (!linePrefix.endsWith('.')) {
+			return completionItems;
+		}
+
+		const lineInSpaces = this.replaceSpecialChars(linePrefix).split(' ');
+		const packageURI 	 = lineInSpaces[lineInSpaces.length-1].split('.');
+
+		if (packageURI.length>1){
+			
+			packageName = packageURI[packageURI.length-2].trim();
+			owner 		= packageURI[0].trim();
+			if (owner===packageName){
+				owner='';
+			}
+		}else{
+			packageName = linePrefix.substring(0,linePrefix.length-1).trim();
+		}
+		
+		packageName = packageName.replace(/[^a-zA-Z0-9_]/g, " ");
+
+		if (packageName.includes(' ')){
+			packageName = packageName.substring(packageName.lastIndexOf(' '), packageName.length).trim();
+		}
+
+		index = cache.packages.findIndex((aPackage:{name:string, owner:string})=>aPackage.name === packageName && aPackage.owner === (owner?owner:null));
+
+		globals = cache.packages[index].variables;
+
+
+		for (let i=0; i<globals.length; i++){
+			let object : vscode.CompletionItem = new vscode.CompletionItem(globals[i].name, vscode.CompletionItemKind.Constant);
+			this.documentWords=this.documentWords.filter((value)=>value!==globals[i].name);
+			object.insertText = object.label;
+			object.documentation = 'Value: ' + globals[i].value;
 			completionItems.push(object);
 		}
 

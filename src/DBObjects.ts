@@ -140,6 +140,38 @@ export class DBObjects {
         }
     }
 
+    public static async getPackageVariables(clientPath:string|undefined, connectionString:string|undefined, username:string|undefined, password:string|undefined, packageName:string|undefined, owner:string|undefined):Promise<any>{
+        this.connection =  await this.connectTo(clientPath, connectionString, username, password);
+        if (!this.connection.error){
+            let query = `with variables as(
+                                    select name as variable_name, object_name as package_name, object_type, line
+                                        from user_identifiers a
+                                        where usage_context_id = 1
+                                        and usage = 'DECLARATION'
+                                        and type = 'VARIABLE'
+                                        and lower(object_name) = '${packageName}'
+                                        and (declared_owner=user or lower(declared_owner) = '${owner}')
+                                        start with object_type in ('PACKAGE', 'PACKAGE BODY')
+                                        connect by prior usage_id = usage_context_id
+                                            and object_name = prior object_name
+                                            and object_type = prior object_type
+                                    )
+                select distinct variable_name,  trim(replace(substr(text, instr(text,'=')+1, (length(text)-instr(text, '='))-2), '''','')) value
+                        from variables join USER_SOURCE on (package_name=user_source.name)
+                        and user_source.type = 'PACKAGE'
+                        and variables.line = user_source.line
+                `;
+            try{
+                let result = await this.connection.execute(query);
+                return result.rows;
+            }catch(err){
+                return {error: "Could not get variables! " + err};
+            };
+        }else{
+            return {error: this.connection.error};
+        }
+    }
+
     public static async getProcedures(clientPath:string|undefined, connectionString:string|undefined, username:string|undefined, password:string|undefined):Promise<any>{
         this.connection =  await this.connectTo(clientPath, connectionString, username, password);
 

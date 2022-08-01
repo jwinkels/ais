@@ -1,4 +1,7 @@
 # Change Log
+### 2.4.2
+- removed bugs
+- package variables
 ### 2.3.1
 - update command also activates the plugin
 - removed bugs

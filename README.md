@@ -57,6 +57,9 @@ The APEX Object Cache contains all APEX_* packages with all of their methods (an
 
 ## Release Notes
 
+### 2.4.2
+- removed bugs
+- package variables
 ### 2.3.1
 - update command also activates the plugin
 - removed bugs

@@ -92,6 +92,21 @@ export class Cache {
         }  
     }
 
+    public addGlobalVariableToPackage(variableName:string|undefined, value:string|undefined, packageName:string|undefined, owner:string|undefined){
+        let cache = this.objects;
+        let index = cache.packages.findIndex((aPackage:{name:string, owner:string})=>aPackage.name===packageName && aPackage.owner===owner);
+        if (variableName){
+            if (cache.packages[index].variables.filter((aVariable: 
+                {name:string; value:string})=>
+                aVariable.name===variableName
+             ).length===0
+            ){
+                cache.packages[index].variables.push({name: variableName, value: value});
+            }
+        }
+
+    }
+
     public addArgumentToMethod(argumentName:string|undefined, type:string|undefined, methodName:string|undefined, methodId:number, packageName:string|undefined, owner:string|undefined){
         
         if (argumentName){
