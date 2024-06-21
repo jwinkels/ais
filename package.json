@@ -3,7 +3,7 @@
 	"name": "ais",
 	"displayName": "ApexIntelliSense",
 	"description": "Code Completion for Apex Development",
-	"version": "2.4.2",
+	"version": "2.4.7",
 	"repository": {
 		"type": "git",
 		"email": "Jan.Winkels@opitz-consulting.com",
@@ -90,7 +90,13 @@
 					"apexIntelliSense.others.languages": {
 						"type": "array",
 						"description": "List of languages where you want to use ApexIntelliSense",
-						"default":	["plaintext","sql","oracle","plsql","javascript"]
+						"default": [
+							"plaintext",
+							"sql",
+							"oracle",
+							"plsql",
+							"javascript"
+						]
 					}
 				}
 			}
@@ -112,7 +118,7 @@
 		"@typescript-eslint/parser": "^4.18.0",
 		"eslint": "^7.22.0",
 		"glob": "^7.1.6",
-		"mocha": "^8.3.2",
+		"mocha": "^10.4.0",
 		"typescript": "^4.1.3",
 		"vscode-test": "^1.5.0"
 	},

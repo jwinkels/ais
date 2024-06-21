@@ -4,6 +4,7 @@
 import * as vscode from 'vscode';
 import { DBObjects } from './DBObjects';
 import { Cache } from './Cache';
+import { stat } from 'fs-extra';
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -24,17 +25,14 @@ export function activate(context: vscode.ExtensionContext) {
 		}	
 	}
 
-	async function loadPackages(instantClientPath:string, connectionString:string, username:string, password:string, publicPackages:string, cache:Cache, progress:vscode.Progress<{message?: string | undefined; increment?: number | undefined;}>):Promise<any>{
-		let packageList = publicPackages.split(',');
-		publicPackages = "'" + packageList.join("','").toUpperCase() + "'";
-		
-		let objects = await DBObjects.getPackages(instantClientPath, connectionString, username, password, publicPackages);
+	async function loadPackages(instantClientPath:string, connectionString:string, username:string, password:string, publicPackages:Array<string>, cache:Cache, progress:vscode.Progress<{message?: string | undefined; increment?: number | undefined;}>):Promise<any>{
+		let objects = await DBObjects.getPackages(instantClientPath, connectionString, username, password, publicPackages, cache);
 		let stepForward = 30 / objects.length;
 		if (!objects.error){
 			for(let i=0; i<objects.length; i++){
 				progress.report({increment: stepForward, message: ' package - ' + objects[i][0].toString() + ' - 0%'});
-				cache.addPackage(objects[i][0].toString(), objects[i][1]);
-				await loadMethods(instantClientPath, connectionString, username, password, objects[i][0].toString(), objects[i][1], cache, progress);
+				cache.addPackage(objects[i][0].toString(), objects[i][1], objects[i][2].toString());
+				await loadMethods(instantClientPath, connectionString, username, password, objects[i][0].toString(), objects[i][1], objects[i][2], cache, progress);
 				await loadVariables(instantClientPath, connectionString, username, password, objects[i][0].toString(), objects[i][1], cache, progress);
 			}
 		}else{
@@ -49,13 +47,13 @@ export function activate(context: vscode.ExtensionContext) {
 		if (!objects.error){
 			for(let i=0; i<objects.length; i++){
 				progress.report({increment: stepForward, message: ' package - ' + objects[i].toString() + ' - 0%'});
-				cache.addPackage(objects[i].toString(),'');
-				await loadMethods(instantClientPath, connectionString, username, password, objects[i].toString(), '' , cache, progress);
+				cache.addPackage(objects[i].toString(),'','PUBLIC');
+				await loadMethods(instantClientPath, connectionString, username, password, objects[i].toString(), '', '', cache, progress);
 			}
 		}
 	}
 
-	async function loadMethods(instantClientPath:string, connectionString:string, username:string, password:string, packageName:string|undefined, owner:string|undefined, cache:Cache, progress:vscode.Progress<{message?: string | undefined; increment?: number | undefined;}>){
+	async function loadMethods(instantClientPath:string, connectionString:string, username:string, password:string, packageName:string|undefined, owner:string|undefined, status:string|undefined, cache:Cache, progress:vscode.Progress<{message?: string | undefined; increment?: number | undefined;}>){
 
 		let methods:any;
 
@@ -71,8 +69,8 @@ export function activate(context: vscode.ExtensionContext) {
 				let ratio = 100/methods.length;
 
 				for(let i=0; i<methods.length; i++){
-					cache.addMethodToPackage(methods[i][0].toString(), methods[i][1], packageName, owner);
-					await loadArguments(instantClientPath, connectionString, username, password, packageName, methods[i][0].toString(), methods[i][1], owner, cache);
+					cache.addMethodToPackage(methods[i][0].toString(), methods[i][1], packageName, owner, status);
+					await loadArguments(instantClientPath, connectionString, username, password, packageName, methods[i][0].toString(), methods[i][1], owner, status, cache);
 					progress.report({increment: 0, message: ' package - ' + packageName + ' - '+(ratio*(i+1)).toFixed()+'%'});
 				}
 			}else{
@@ -88,7 +86,7 @@ export function activate(context: vscode.ExtensionContext) {
 						cache.addMethod(methods[i][0].toString(), methods[i][1], undefined);
 					}
 					
-					await loadArguments(instantClientPath, connectionString, username, password, undefined, methods[i][0].toString(), methods[i][1], methods[i][2], cache);
+					await loadArguments(instantClientPath, connectionString, username, password, undefined, methods[i][0].toString(), methods[i][1], methods[i][2], status, cache);
 				}
 			}else{
 				vscode.window.showErrorMessage(methods.error);
@@ -115,7 +113,7 @@ export function activate(context: vscode.ExtensionContext) {
 		
 	}
 
-	async function loadArguments(instantClientPath:string, connectionString:string, username:string, password:string, packageName:string|undefined, methodName:string|undefined, id:number, owner:string|undefined, cache:Cache){
+	async function loadArguments(instantClientPath:string, connectionString:string, username:string, password:string, packageName:string|undefined, methodName:string|undefined, id:number, owner:string|undefined, status:string|undefined, cache:Cache){
 		
 		let argumentList:any;
 		try{
@@ -125,9 +123,9 @@ export function activate(context: vscode.ExtensionContext) {
 				for(let i=0; i<argumentList.length; i++){
 					
 					if(argumentList[i][0]){
-						cache.addArgumentToMethod(argumentList[i][0].toString(), argumentList[i][1].toString(), methodName, id, packageName, owner);
+						cache.addArgumentToMethod(argumentList[i][0].toString(), argumentList[i][1].toString(), methodName, id, packageName, owner, status);
 					}else{
-						cache.addArgumentToMethod(undefined, argumentList[i][1].toString(), methodName, id, packageName, owner);
+						cache.addArgumentToMethod(undefined, argumentList[i][1].toString(), methodName, id, packageName, owner, status);
 					}
 				}
 			}else{
@@ -138,7 +136,7 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	}
 
-	async function load(instantClientPath:string, connectionString:string, username:string, password:string, publicPackages:string){
+	async function load(instantClientPath:string, connectionString:string, username:string, password:string, publicPackages:Array<string>){
 		let cache:any 		= new Cache(); 
 		let apexCache:any	= new Cache(); 
 		let loadApex    	= vscode.workspace.getConfiguration('').get('apexIntelliSense.options.LoadApexPackages');
@@ -148,6 +146,8 @@ export function activate(context: vscode.ExtensionContext) {
 			title: "Loading ",
 			cancellable: true
 		}, async (progress, token) => {
+
+			cache = await cache.load();
 
 			apexCache.setApexVersion(DBObjects.apexVersion, DBObjects.apexMinorVersion);
 			
@@ -159,7 +159,7 @@ export function activate(context: vscode.ExtensionContext) {
 			
 			if(loadApex){
 				progress.report({increment: 10, message: "User stored procedures..."});
-				await loadMethods(instantClientPath, connectionString, username, password, undefined, username, cache, progress);
+				await loadMethods(instantClientPath, connectionString, username, password, undefined, undefined, username, cache, progress);
 
 				cache.serialize();
 				
@@ -170,8 +170,9 @@ export function activate(context: vscode.ExtensionContext) {
 				apexCache.serializeApexPackages();
 			}else{
 				progress.report({increment: 50, message: "User stored procedures..."});
-				await loadMethods(instantClientPath, connectionString, username, password, undefined, username, cache, progress);
+				await loadMethods(instantClientPath, connectionString, username, password, undefined, undefined, username, cache, progress);
 			}
+			cache.setLastUpdate(await DBObjects.getDatabaseTime(instantClientPath, connectionString, username, password));
 			cache.serialize();	
 		});
 		
@@ -182,7 +183,7 @@ export function activate(context: vscode.ExtensionContext) {
 		let username =""+vscode.workspace.getConfiguration('',).get('apexIntelliSense.credentials.username');
 		let instantClientPath = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.paths.OracleInstantClientPath');
 		let connectionString  = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.credentials.connection');
-		let publicPackages    = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.options.PublicPackages');
+		let publicPackages    = (vscode.workspace.getConfiguration('').get('apexIntelliSense.options.PublicPackages') as Array<string>);
 		let loadOnActivate    = vscode.workspace.getConfiguration('').get('apexIntelliSense.options.LoadObjectsOnActivate');
 		let imagesDirectory   = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.javascript.imageDirectory');
 		let applicationServer = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.javascript.applicationServer');
@@ -237,7 +238,7 @@ export function activate(context: vscode.ExtensionContext) {
 		let username =""+vscode.workspace.getConfiguration('').get('apexIntelliSense.credentials.username');
 		let instantClientPath = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.paths.OracleInstantClientPath');
 		let connectionString  = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.credentials.connection');
-		let publicPackages    = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.options.PublicPackages');
+		let publicPackages    =  (vscode.workspace.getConfiguration('').get('apexIntelliSense.options.PublicPackages') as Array<string>);
 		let imagesDirectory   = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.javascript.imageDirectory');
 		let applicationServer = "" + vscode.workspace.getConfiguration('').get('apexIntelliSense.javascript.applicationServer');
 
@@ -389,8 +390,8 @@ class  ApexCompletionItemProvider implements vscode.CompletionItemProvider{
 		for(let i=0; i<cache.packages.length; i++){
 			
 			if (cache.packages[i].owner){
-				object = new vscode.CompletionItem(cache.packages[i].owner + '.'+ cache.packages[i].name);
-				this.documentWords=this.documentWords.filter((value)=>value!==cache.packages[i].owner);
+				object = new vscode.CompletionItem( (cache.packages[i].status = 'PUBLIC' ? '' : cache.packages[i].owner + '.') + cache.packages[i].name);
+				this.documentWords=this.documentWords.filter( (value) => value !== (cache.packages[i].status = 'PUBLIC' ? cache.packages[i].name : cache.packages[i].owner));
 			}else{
 				object = new vscode.CompletionItem(cache.packages[i].name);
 			}
@@ -427,7 +428,7 @@ class  ApexCompletionItemProvider implements vscode.CompletionItemProvider{
 					object  = new vscode.CompletionItem(methods[i], vscode.CompletionItemKind.Function);
 				}
 				this.documentWords=this.documentWords.filter((value)=>value!==methods[i]);
-				object.insertText = object.label;
+				object.insertText = object.label.toString();
 				object = await this.argumentListSnippet(object, cache.methods[methods[i]].arguments);
 				
 				
@@ -515,7 +516,7 @@ class  ApexCompletionItemProvider implements vscode.CompletionItemProvider{
 			packageName = packageName.substring(packageName.lastIndexOf(' '), packageName.length).trim();
 		}
 
-		index = cache.packages.findIndex((aPackage:{name:string, owner:string})=>aPackage.name === packageName && aPackage.owner === (owner?owner:null));
+		index = cache.packages.findIndex( (aPackage:{name:string, owner:string}) => aPackage.name === packageName && aPackage.owner === (owner ? owner:null));
 		
 		if(index === -1){
 			index = apexCache.packages.findIndex((aPackage:{name:string, owner:string})=>aPackage.name === packageName && aPackage.owner === owner);
@@ -527,7 +528,7 @@ class  ApexCompletionItemProvider implements vscode.CompletionItemProvider{
 		for (let i=0; i<methods.length; i++){
 			let object : vscode.CompletionItem = new vscode.CompletionItem(methods[i].name, vscode.CompletionItemKind.Function);
 			this.documentWords=this.documentWords.filter((value)=>value!==methods[i].name);
-			object.insertText = object.label;
+			object.insertText = object.label.toString();
 			object = await this.argumentListSnippet(object, methods[i].arguments);
 			completionItems.push(object);
 		}
@@ -575,23 +576,20 @@ class  ApexCompletionItemProvider implements vscode.CompletionItemProvider{
 		}
 
 		index = cache.packages.findIndex((aPackage:{name:string, owner:string})=>aPackage.name === packageName && aPackage.owner === (owner?owner:null));
+		if (index !== -1){
+			globals = cache.packages[index].variables;
 
-		globals = cache.packages[index].variables;
 
-
-		for (let i=0; i<globals.length; i++){
-			let object : vscode.CompletionItem = new vscode.CompletionItem(globals[i].name, vscode.CompletionItemKind.Constant);
-			this.documentWords=this.documentWords.filter((value)=>value!==globals[i].name);
-			object.insertText = object.label;
-			object.documentation = 'Value: ' + globals[i].value;
-			completionItems.push(object);
+			for (let i=0; i<globals.length; i++){
+				let object : vscode.CompletionItem = new vscode.CompletionItem(globals[i].name, vscode.CompletionItemKind.Constant);
+				this.documentWords=this.documentWords.filter((value)=>value!==globals[i].name);
+				object.insertText = object.label.toString();
+				object.documentation = 'Value: ' + globals[i].value;
+				completionItems.push(object);
+			}
 		}
 
-		if (completionItems.length > 0){
-			return completionItems;
-		}else{
-			return completionItems;
-		}
+		return completionItems;
 	}
 
 	async getDocumentDefinitions():Promise<vscode.CompletionItem[]> {

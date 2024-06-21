@@ -8,6 +8,7 @@ import * as httpm from 'typed-rest-client/HttpClient';
 export class Cache {
 
     private objects:any= {
+        lastUpdate: null,
         items: [],
         packages: [],
         methods: []
@@ -48,12 +49,15 @@ export class Cache {
         }
     }
 
-    public addPackage(name:string|undefined, owner:string):any{
+    public addPackage(name:string|undefined, owner:string|null, status:string|undefined):any{
 
         let cache = this.objects;
         let index = cache.packages.findIndex((aPackage:{name:string, owner:string})=>aPackage.name===name && aPackage.owner===owner);
         if(name && index === -1){
-            cache.packages.push({name: name, owner: owner, methods:[], variables: []});
+            if(status === "PUBLIC"){
+                owner=null;
+            }
+            cache.packages.push({name: name, owner: owner, status: status, methods:[], variables: []});
         }
     }
 
@@ -73,10 +77,15 @@ export class Cache {
         }
     }
 
-    public addMethodToPackage(methodName:string|undefined, methodId:number|undefined, packageName:string|undefined, owner:string|undefined){
+    public addMethodToPackage(methodName:string|undefined, methodId:number|undefined, packageName:string|undefined, owner:string|undefined, status:string|undefined){
 
         let cache = this.objects;
-        let index = cache.packages.findIndex((aPackage:{name:string, owner:string})=>aPackage.name===packageName && aPackage.owner===owner);
+
+        if (status = "PUBLIC"){
+            owner = undefined;
+        }
+
+        let index = cache.packages.findIndex((aPackage:{name:string, owner:string})=>aPackage.name===packageName && aPackage.owner===(owner ? owner : null));
         if(methodName 
             && methodId
             ){    
@@ -94,7 +103,7 @@ export class Cache {
 
     public addGlobalVariableToPackage(variableName:string|undefined, value:string|undefined, packageName:string|undefined, owner:string|undefined){
         let cache = this.objects;
-        let index = cache.packages.findIndex((aPackage:{name:string, owner:string})=>aPackage.name===packageName && aPackage.owner===owner);
+        let index = cache.packages.findIndex((aPackage:{name:string, owner:string})=>aPackage.name===packageName && aPackage.owner===(owner?owner:null));
         if (variableName){
             if (cache.packages[index].variables.filter((aVariable: 
                 {name:string; value:string})=>
@@ -107,16 +116,20 @@ export class Cache {
 
     }
 
-    public addArgumentToMethod(argumentName:string|undefined, type:string|undefined, methodName:string|undefined, methodId:number, packageName:string|undefined, owner:string|undefined){
+    public addArgumentToMethod(argumentName:string|undefined, type:string|undefined, methodName:string|undefined, methodId:number, packageName:string|undefined, owner:string|undefined, status:string|undefined){
         
         if (argumentName){
             this.argument.name ="" + argumentName;
         }else{
             this.argument.name ="RETURN";
         }
+
+        if(status === "PUBLIC"){
+            owner=undefined;
+        }
         
-        let packageIndex = this.objects.packages.findIndex((aPackage:{name:string, owner:string})=>aPackage.name===packageName && aPackage.owner===owner);
-        let methodIndex = this.objects.methods.findIndex((aMethod:{name:string, owner:string})=>aMethod.name===methodName && aMethod.owner===(owner?owner:undefined));
+        let packageIndex = this.objects.packages.findIndex((aPackage:{name:string, owner:string})=>aPackage.name===packageName && aPackage.owner===(owner?owner:null));
+        let methodIndex = this.objects.methods.findIndex((aMethod:{name:string, owner:string})=>aMethod.name===methodName && aMethod.owner===(owner?owner:null));
         
         if(type 
                 && methodName 
@@ -268,5 +281,13 @@ export class Cache {
         }catch(err){
             vscode.window.showErrorMessage(`ApexIntelliSense: Could not load APEX JS API from ${applicationServer} - connection problems`);
         }
+    }
+
+    public getLastUpdate():String{
+        return this.objects.lastUpdate;
+    }
+
+    public setLastUpdate(updateDbTime:String){
+        this.objects.lastUpdate = updateDbTime;
     }
 }
